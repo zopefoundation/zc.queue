@@ -50,7 +50,7 @@ def resolveQueueConflict(oldstate, committedstate, newstate):
             raise ConflictError
     # basically, we are ok with anything--willing to merge--
     # unless committedstate and newstate have one or more of the
-    # same *deletions* from the oldstate.
+    # same deletions or additions in comparison to the oldstate.
     old = oldstate['_data']
     committed = committedstate['_data']
     new = newstate['_data']
@@ -84,14 +84,41 @@ def resolveQueueConflict(oldstate, committedstate, newstate):
     return committedstate
 
 class CompositePersistentQueue(Persistent):
-    """Appropriate for queues that may become large"""
+    """Appropriate for queues that may become large.
+    
+    Using this queue has one advantage and two possible disadvantages.
+    
+    The advantage is that adding items to a large queue does not require
+    writing the entire queue out to the database, since only one or two parts
+    of it actually changes.  This can be a win for time, memory, and database
+    size.
+    
+    One disadvantage is that multiple concurrent adds may intermix the adds in
+    a surprising way: see queue.txt for more details.
+    
+    Another possible disadvantage is that this queue does not consistently
+    enforce the policy that concurrent adds of the same item are not
+    allowed: because one instance may go in two different composite buckets,
+    the conflict resolution cannot look in both buckets to see that they were
+    both added.
+
+    If either of these are an issue, consider using the simpler PersistentQueue
+    instead, foregoing the advantages of the composite approach.
+    """
+
+    # design note: one rejected strategy to try and enforce the "concurrent adds
+    # of the same object are not allowed" policy is to set a persistent flag on
+    # a queue when it reaches or exceeds the target size, and to start a new
+    # bucket only on the following transaction.  This would work in some
+    # scenarios, but breaks down when two transactions happen sequentially
+    # *while* a third transaction happens concurrently to both.
 
     interface.implements(interfaces.IQueue)
 
     def __init__(self, compositeSize=15, subfactory=PersistentQueue):
         # the compositeSize value is a ballpark.  Because of the merging
         # policy, a composite queue might get as big as 2n under unusual
-        # circumstances.
+        # circumstances.  A better name for this might be "splitSize"...
         self.subfactory = subfactory
         self._data = ()
         self.compositeSize = compositeSize
