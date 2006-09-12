@@ -17,7 +17,7 @@ Simply run this script in a directory containing a buildout.cfg.
 The script accepts buildout command-line options, so you can
 use the -c option to specify an alternate configuration file.
 
-$Id: bootstrap.py 68905 2006-06-29 10:46:56Z jim $
+$Id: bootstrap.py 69908 2006-08-31 21:53:00Z jim $
 """
 
 import os, shutil, sys, tempfile, urllib2
@@ -31,14 +31,18 @@ ez['use_setuptools'](to_dir=tmpeggs, download_delay=0)
 
 import pkg_resources
 
+cmd = 'from setuptools.command.easy_install import main; main()'
+if sys.platform == 'win32':
+    cmd = '"%s"' % cmd # work around spawn lamosity on windows
+
 ws = pkg_resources.working_set
 assert os.spawnle(
     os.P_WAIT, sys.executable, sys.executable,
-    '-c', 'from setuptools.command.easy_install import main; main()',
-    '-mqNxd', tmpeggs, 'zc.buildout',
-    {'PYTHONPATH':
-     ws.find(pkg_resources.Requirement.parse('setuptools')).location
-     },
+    '-c', cmd, '-mqNxd', tmpeggs, 'zc.buildout',
+    dict(os.environ,
+         PYTHONPATH=
+         ws.find(pkg_resources.Requirement.parse('setuptools')).location
+         ),
     ) == 0
 
 ws.add_entry(tmpeggs)

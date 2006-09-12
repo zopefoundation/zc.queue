@@ -1,0 +1,8 @@
+1.0.1
+
+Minor buildout changes
+Initial release to PyPI
+
+1.0
+
+Initial release to zope.org
