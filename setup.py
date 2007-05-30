@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="zc.queue",
-    version="1.0.1",
+    version="1.0.2-dev",
     license="ZPL 2.1",
     author="Zope Project",
     author_email="zope3-dev@zope.org",

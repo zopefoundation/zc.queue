@@ -12,7 +12,7 @@ An important characteristic of these queues is that they do not expect to
 hold more than one reference to any given equivalent item at a time.  For
 instance, some of the conflict resolution features will not perform
 desirably if it is reasonable for your application to hold two copies of the
-string "hello" within the same queue at once.
+string "hello" within the same queue at once [#why]_.
 
 The module provides two flavors: a simple persistent queue that keeps all
 contained objects in one persistent object (`PersistentQueue`), and a
@@ -143,8 +143,13 @@ Beyond these core queue operations, queues support len...
 That's it--there's no additional way to add anything beyond `put`, and no
 additional way to remove anything beyond `pull`.
 
-The only other wrinkle is the conflict resolution code.  To show this, we
-will have to have two copies of the same queue, from two different connections.
+The only other wrinkle is the conflict resolution code.  Conflict
+resolution in ZODB has some general caveats of which you should be aware
+[#caveats]_.
+
+These general caveats aside, we'll now examine some examples of zc.queue
+conflict resolution at work.  To show this, we will have to have two
+copies of the same queue, from two different connections.
 
 NOTE: this testing approach has known weaknesses.  See discussion in tests.py.
 
@@ -386,3 +391,64 @@ transactions, are still in order.  One ordering might be
     [8, 9, 10, 11, 12, 13, 14, 15]
 
     >>> db.close() # cleanup
+
+.. [#why] The queue's `pull` method is actually the interesting part in why
+    this constraint is used, and it becomes more so when you allow an
+    arbitrary pull.  By asserting that you do not support having equal
+    items in the queue at once, you can simply say that when you remove
+    equal objects in the current state and the contemporary, conflicting
+    state, it's a conflict error.  Ideally you don't enter another equal
+    item in that queue again, or else in fact this is still an
+    error-prone heuristic:
+    
+      - start queue == [X];
+      - begin transactions A and B;
+      - B removes X and commits;
+      - transaction C adds X and Y and commits;
+      - transaction A removes X and tries to commit, and conflict resolution
+        code believes that it is ok to remove the new X from transaction C
+        because it looks like it was just an addition of Y).  Commit succeeds,
+        and should not.
+
+    If you don't assert that you can use equality to examine conflicts,
+    then you have to come up with another heuristic.  Given that the
+    conflict resolution code only gets three states to resolve, I don't
+    know of a reliable one.
+
+    Therefore, zc.queue has a policy of assuming that it can use
+    equality to distinguish items.  It's limiting, but the code can have
+    a better confidence of doing the right thing.
+
+    Also, FWIW, this is policy I want: for my use cases, it would be
+    possible to put in two items in a queue that handle the same issue. 
+    With the right equality code, this can be avoided with the policy
+    the queue has now.
+
+.. [#caveats] Here are a few caveats about the state (as of this
+    writing) of ZODB conflict resolution in general.
+
+    The biggest is that, if you store persistent.Persistent subclass
+    objects in a queue (or any other collection with conflict resolution
+    code, such as a BTree), the collection will get a placeholder object
+    (ZODB.ConflictResolution.PersistentReference), rather than the real
+    contained object.  This object has a standard Python __cmp__ based
+    on identity in memory (e.g. `id(obj)`).  The same oid will get the
+    same placeholder in the different states for conflict resolution, so
+    that may be sufficient for reasonable behavior in a queue as long as
+    only objects with the same oid may be considered equal.  (This is very
+    problematic behavior if your persistent object is a key in a BTree,
+    however.)
+
+    Another is that, in ZEO, conflict resolution is currently done on
+    the server, so the ZEO server must have a copy of the classes
+    (software) necessary to instantiate any non-persistent object in the
+    collection.
+
+    A corollary to the above is that objects such as
+    zope.app.keyreference.persistent, which are not persistent
+    themselves but rely on a persistent object for their __cmp__, will
+    fail during conflict resolution.  A reasonable solution in the case
+    of zope.app.keyreference.persistent code is to have the object store
+    the information it needs to do the comparison on itself, so the
+    absence of the persistent object during conflict resolution is
+    unimportant.
