@@ -15,9 +15,9 @@ desirably if it is reasonable for your application to hold two copies of the
 string "hello" within the same queue at once [#why]_.
 
 The module provides two flavors: a simple persistent queue that keeps all
-contained objects in one persistent object (`PersistentQueue`), and a
+contained objects in one persistent object (`Queue`), and a
 persistent queue that divides up its contents into multiple composite
-elements (`CompositePersistentQueue`). They should be equivalent in terms of
+elements (`CompositeQueue`). They should be equivalent in terms of
 API and so are mostly examined in the abstract in this document: we'll generate
 instances with a representative `Queue` factory, that could be either class.
 They only differ in an aspect of their write conflict resolution behavior,
@@ -162,12 +162,8 @@ NOTE: this testing approach has known weaknesses.  See discussion in tests.py.
     >>> connection_1 = db.open(transaction_manager=transactionmanager_1)
     >>> root_1 = connection_1.root()
 
-    >>> q = Queue()
-    >>> q.__name__ = "queue"
-    >>> root_1["queue"] = q
-    >>> del q
+    >>> q_1 = root_1["queue"] = Queue()
     >>> transactionmanager_1.commit()
-    >>> q_1 = root_1['queue']
 
     >>> transactionmanager_2 = transaction.TransactionManager()
     >>> connection_2 = db.open(transaction_manager=transactionmanager_2)
@@ -201,11 +197,11 @@ committed first, so q_2's addition is first after the merge.
 
 For commits of more than one additions per connection of two, or of more than
 two concurrent adding transactions, the behavior is the same for the
-PersistentQueue: the first commit's additions will go before the second
+Queue: the first commit's additions will go before the second
 commit's.
 
     >>> from zc import queue
-    >>> if isinstance(q_1, queue.PersistentQueue):
+    >>> if isinstance(q_1, queue.Queue):
     ...     for i in range(5):
     ...         q_1.put(i)
     ...     for i in range(1002, 1005):
@@ -220,12 +216,12 @@ As we'll see below, that will again reliably put all the values from the first
 commit earlier in the queue, to result in
 [1000, 1001, 1002, 1003, 1004, 0, 1, 2, 3, 4].
 
-For the CompositePersistentQueue, the behavior is different.  The order
+For the CompositeQueue, the behavior is different.  The order
 will be maintained with a set of additions in a transaction, but the values
 may be merged between the two transactions' additions.  We will compensate
 for that here to get a reliable queue state.
 
-    >>> if isinstance(q_1, queue.CompositePersistentQueue):
+    >>> if isinstance(q_1, queue.CompositeQueue):
     ...     for i1, i2 in ((1002, 1003), (1004, 0), (1, 2), (3, 4)):
     ...         q_1.put(i1)
     ...         q_2.put(i2)
@@ -305,6 +301,11 @@ Users can also concurrently remove items from a queue...
     >>> list(q_2)
     [1002, 1003, 1004, 1, 2, 3, 4, 5]
 
+There's actually a special case: the composite queue's buckets will refuse to
+merge if they started with a non-empty state, and one of the two new states
+is empty.  This is to prevent the loss of an addition to the queue.  See
+tests.py for an example.
+
 Also importantly, users can concurrently remove and add items to a queue.
 
     >>> q_1.pull()
@@ -354,24 +355,24 @@ duress, with multiple simultaneous puts and pulls.
     >>> connection_1.sync()
     >>> connection_2.sync()
 
-After these commits, if the queue is a PersistentQueue, the new values are
+After these commits, if the queue is a Queue, the new values are
 in the order of their commit.  However, as discussed above, if the queue is
-a CompositePersistentQueue the behavior is different. While the order will be
+a CompositeQueue the behavior is different. While the order will be
 maintained comparitively--so if object `A` is ahead of object `B` in the queue
 on commit then `A` will still be ahead of `B` after a merge of the conflicting
 transactions--values may be interspersed between the two transactions.
 
-For instance, if our example queue were a PersistentQueue, the values would
+For instance, if our example queue were a Queue, the values would
 be [8, 9, 10, 11, 12, 13, 14, 15].  However, if it were a
-CompositePersistentQueue, the values might be the same, or might be any
+CompositeQueue, the values might be the same, or might be any
 combination in which [8, 9, 10, 11] and [12, 13, 14, 15], from the two
 transactions, are still in order.  One ordering might be
 [8, 9, 12, 13, 10, 11, 14, 15], for instance.
 
-    >>> if isinstance(q_1, queue.PersistentQueue):
+    >>> if isinstance(q_1, queue.Queue):
     ...     res_1 = list(q_1)
     ...     res_2 = list(q_2)
-    ... elif isinstance(q_1, queue.CompositePersistentQueue):
+    ... elif isinstance(q_1, queue.CompositeQueue):
     ...     firstsrc_1 = list(q_1)
     ...     firstsrc_2 = list(q_2)
     ...     secondsrc_1 = firstsrc_1[:]

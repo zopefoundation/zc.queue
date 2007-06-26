@@ -1,8 +1,27 @@
-1.0.1
+=======
+CHANGES
+=======
 
-Minor buildout changes
-Initial release to PyPI
+1.1
+===
+
+- Fixed a conflict resolution bug in CompositeQueue
+
+- Renamed PersistentQueue to Queue, CompositePersistentQueue to
+  CompositeQueue. The old names are nominally deprecated, although no
+  warnings are generated and there are no current plans to eliminate
+  them.  The PersistentQueue class has more conservative conflict
+  resolution than it used to.  (The Queue class has the same conflict
+  resolution as the PersistentQueue used to have.)
+
+1.0.1
+=====
+
+- Minor buildout changes
+
+- Initial release to PyPI
 
 1.0
+===
 
-Initial release to zope.org
+- Initial release to zope.org

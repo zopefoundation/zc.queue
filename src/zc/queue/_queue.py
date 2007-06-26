@@ -5,7 +5,7 @@ from zope import interface
 
 from zc.queue import interfaces
 
-class PersistentQueue(Persistent):
+class Queue(Persistent):
 
     interface.implements(interfaces.IQueue)
 
@@ -38,16 +38,25 @@ class PersistentQueue(Persistent):
         return bool(self._data)
 
     def _p_resolveConflict(self, oldstate, committedstate, newstate):
-        return resolveQueueConflict(oldstate, committedstate, newstate)
+        return resolveQueueConflict(
+            oldstate, committedstate, newstate)
 
-def resolveQueueConflict(oldstate, committedstate, newstate):
+class BucketQueue(Queue):
+
+    def _p_resolveConflict(self, oldstate, committedstate, newstate):
+        return resolveQueueConflict(
+            oldstate, committedstate, newstate, True)
+
+PersistentQueue = BucketQueue # for legacy instances, be conservative
+
+def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
     # we only know how to merge _data.  If anything else is different,
     # puke.
     if set(committedstate.keys()) != set(newstate.keys()):
-        raise ConflictError
+        raise ConflictError # can't resolve
     for key, val in newstate.items():
         if key != '_data' and val != committedstate[key]:
-            raise ConflictError
+            raise ConflictError # can't resolve
     # basically, we are ok with anything--willing to merge--
     # unless committedstate and newstate have one or more of the
     # same deletions or additions in comparison to the oldstate.
@@ -59,6 +68,15 @@ def resolveQueueConflict(oldstate, committedstate, newstate):
     committed_set = set(committed)
     new_set = set(new)
 
+    if bucket and bool(old_set) and (bool(committed_set) ^ bool(new_set)):
+        # This is a bucket, part of a CompositePersistentQueue.  The old set
+        # of this bucket had items, and one of the two transactions cleaned
+        # it out.  There's a reasonable chance that this bucket will be
+        # cleaned out by the parent in one of the two new transactions.
+        # We can't know for sure, so we take the conservative route of
+        # refusing to be resolvable.
+        raise ConflictError
+
     committed_added = committed_set - old_set
     committed_removed = old_set - committed_set
     new_added = new_set - old_set
@@ -66,10 +84,10 @@ def resolveQueueConflict(oldstate, committedstate, newstate):
 
     if new_removed & committed_removed:
         # they both removed (claimed) the same one.  Puke.
-        raise ConflictError
+        raise ConflictError # can't resolve
     elif new_added & committed_added:
         # they both added the same one.  Puke.
-        raise ConflictError
+        raise ConflictError # can't resolve
     # Now we do the merge.  We'll merge into the committed state and
     # return it.
     mod_committed = []
@@ -83,7 +101,8 @@ def resolveQueueConflict(oldstate, committedstate, newstate):
     committedstate['_data'] = tuple(mod_committed)
     return committedstate
 
-class CompositePersistentQueue(Persistent):
+
+class CompositeQueue(Persistent):
     """Appropriate for queues that may become large.
     
     Using this queue has one advantage and two possible disadvantages.
@@ -115,7 +134,7 @@ class CompositePersistentQueue(Persistent):
 
     interface.implements(interfaces.IQueue)
 
-    def __init__(self, compositeSize=15, subfactory=PersistentQueue):
+    def __init__(self, compositeSize=15, subfactory=BucketQueue):
         # the compositeSize value is a ballpark.  Because of the merging
         # policy, a composite queue might get as big as 2n under unusual
         # circumstances.  A better name for this might be "splitSize"...
@@ -198,3 +217,4 @@ class CompositePersistentQueue(Persistent):
     def _p_resolveConflict(self, oldstate, committedstate, newstate):
         return resolveQueueConflict(oldstate, committedstate, newstate)
 
+CompositePersistentQueue = CompositeQueue # legacy

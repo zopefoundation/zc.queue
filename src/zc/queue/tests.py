@@ -66,13 +66,82 @@ class ConflictResolvingMappingStorage(
         for oid, record in self._tindex.items():
             self._old.setdefault(oid, {})[self._tid] = record[8:]
 
+def test_deleted_bucket():
+    """As described in ZODB/ConflictResolution.txt, you need to be very
+    careful of objects that are composites of other persistent objects.
+    Without careful code, the following situation can cause an item in the
+    queue to be lost.
+    
+        >>> import transaction # setup...
+        >>> from ZODB import DB
+        >>> db = DB(ConflictResolvingMappingStorage('test'))
+        >>> transactionmanager_1 = transaction.TransactionManager()
+        >>> transactionmanager_2 = transaction.TransactionManager()
+        >>> connection_1 = db.open(transaction_manager=transactionmanager_1)
+        >>> root_1 = connection_1.root()
+
+        >>> q_1 = root_1["q"] = queue.CompositeQueue()
+        >>> q_1.put(1)
+        >>> transactionmanager_1.commit()
+    
+        >>> transactionmanager_2 = transaction.TransactionManager()
+        >>> connection_2 = db.open(transaction_manager=transactionmanager_2)
+        >>> root_2 = connection_2.root()
+        >>> q_2 = root_2["q"]
+        >>> q_1.pull()
+        1
+        >>> q_2.put(2)
+        >>> transactionmanager_2.commit()
+        >>> transactionmanager_1.commit() # doctest: +ELLIPSIS
+        Traceback (most recent call last):
+        ...
+        ConflictError: ...
+
+    Without the behavior, the queue would be empty!
+
+    With a simple queue, this will merge normally.
+
+        >>> transactionmanager_1.abort()
+        >>> q_1 = root_1["q"] = queue.Queue()
+        >>> q_1.put(1)
+        >>> transactionmanager_1.commit()
+    
+        >>> transactionmanager_2 = transaction.TransactionManager()
+        >>> connection_2 = db.open(transaction_manager=transactionmanager_2)
+        >>> root_2 = connection_2.root()
+        >>> q_2 = root_2["q"]
+        >>> q_1.pull()
+        1
+        >>> q_2.put(2)
+        >>> transactionmanager_2.commit()
+        >>> transactionmanager_1.commit()
+        >>> list(q_1)
+        [2]
+
+    """
+
+def test_legacy():
+    """We used to promote the names PersistentQueue and
+    CompositePersistentQueue as the expected names for the classes in this
+    package.  They are now shortened, but the older names should stay
+    available in _queue in perpetuity.
+    
+        >>> import zc.queue._queue
+        >>> zc.queue._queue.BucketQueue is queue.PersistentQueue
+        True
+        >>> queue.CompositeQueue is queue.CompositePersistentQueue
+        True
+
+    """
+
 def test_suite():
     return unittest.TestSuite((
         doctest.DocFileSuite(
-            'queue.txt', globs={'Queue':queue.PersistentQueue}),
+            'queue.txt', globs={'Queue':queue.Queue}),
         doctest.DocFileSuite(
             'queue.txt',
-            globs={'Queue':lambda: queue.CompositePersistentQueue(2)}),
+            globs={'Queue':lambda: queue.CompositeQueue(2)}),
+        doctest.DocTestSuite()
         ))
 
 if __name__ == '__main__':

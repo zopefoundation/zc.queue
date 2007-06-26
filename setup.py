@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="zc.queue",
-    version="1.0.2-dev",
+    version="1.1",
     license="ZPL 2.1",
     author="Zope Project",
     author_email="zope3-dev@zope.org",
@@ -14,7 +14,9 @@ setup(
     install_requires=["zope.interface", "ZODB3"],
     tests_require=["zope.testing"],
     description=open('README.txt').read(),
-    long_description=open("src/zc/queue/queue.txt").read(),
+    long_description=(
+        open("CHANGES.txt").read()+
+        open("src/zc/queue/queue.txt").read()),
     keywords="zope zope3",
     zip_safe=False
     )
