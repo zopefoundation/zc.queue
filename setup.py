@@ -15,7 +15,7 @@ setup(
     tests_require=["zope.testing"],
     description=open('README.txt').read(),
     long_description=(
-        open("CHANGES.txt").read()+
+        open("CHANGES.txt").read() + "\n\n" +
         open("src/zc/queue/queue.txt").read()),
     keywords="zope zope3",
     zip_safe=False
