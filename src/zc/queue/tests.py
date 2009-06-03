@@ -17,7 +17,7 @@ from zc import queue
 # with transaction managers and all: this gives a clearer picture of the
 # full context in which this conflict resolution code must dance.
 
-class ConflictResolvingMappingStorage(
+class ConflictResolvingMappingStorage_38(
     MappingStorage.MappingStorage,
     ConflictResolution.ConflictResolvingStorage):
 
@@ -66,12 +66,45 @@ class ConflictResolvingMappingStorage(
         for oid, record in self._tindex.items():
             self._old.setdefault(oid, {})[self._tid] = record[8:]
 
+
+class ConflictResolvingMappingStorage_39(
+    MappingStorage.MappingStorage,
+    ConflictResolution.ConflictResolvingStorage):
+
+    def store(self, oid, serial, data, version, transaction):
+        assert not version, "Versions are not supported"
+        if transaction is not self._transaction:
+            raise ZODB.POSException.StorageTransactionError(self, transaction)
+
+        old_tid = None
+        tid_data = self._data.get(oid)
+        if tid_data:
+            old_tid = tid_data.maxKey()
+            if serial != old_tid:
+                rdata = self.tryToResolveConflict(
+                    oid, old_tid, serial, data)
+                if rdata is None:
+                    raise POSException.ConflictError(
+                        oid=oid, serials=(old_tid, serial), data=data)
+                else:
+                    data = rdata
+        self._tdata[oid] = data
+        return self._tid
+
+
+if hasattr(MappingStorage.MappingStorage, '_finish'):
+    # ZODB 3.8
+    ConflictResolvingMappingStorage = ConflictResolvingMappingStorage_38
+else:
+    ConflictResolvingMappingStorage = ConflictResolvingMappingStorage_39
+
+
 def test_deleted_bucket():
     """As described in ZODB/ConflictResolution.txt, you need to be very
     careful of objects that are composites of other persistent objects.
     Without careful code, the following situation can cause an item in the
     queue to be lost.
-    
+
         >>> import transaction # setup...
         >>> from ZODB import DB
         >>> db = DB(ConflictResolvingMappingStorage('test'))
