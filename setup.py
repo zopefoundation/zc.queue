@@ -11,7 +11,11 @@ setup(
     packages=["zc", "zc.queue"],
     package_dir={"": "src"},
     include_package_data=True,
-    install_requires=["zope.interface", "ZODB3"],
+    install_requires=[
+        "setuptools",
+        "ZODB3",
+        "zope.interface",
+    ],
     tests_require=["zope.testing"],
     description=open('README.txt').read(),
     long_description=(
