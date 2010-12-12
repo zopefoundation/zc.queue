@@ -1,8 +1,8 @@
-import unittest
-from zope.testing import doctest, module
 from ZODB import ConflictResolution, MappingStorage, POSException
-
 from zc import queue
+from zope.testing import module
+import doctest
+import unittest
 
 # TODO: this approach is useful, but fragile.  It also puts a dependency in
 # this package on the ZODB, when otherwise it would only depend on persistent.
@@ -116,7 +116,7 @@ def test_deleted_bucket():
         >>> q_1 = root_1["q"] = queue.CompositeQueue()
         >>> q_1.put(1)
         >>> transactionmanager_1.commit()
-    
+
         >>> transactionmanager_2 = transaction.TransactionManager()
         >>> connection_2 = db.open(transaction_manager=transactionmanager_2)
         >>> root_2 = connection_2.root()
@@ -138,7 +138,7 @@ def test_deleted_bucket():
         >>> q_1 = root_1["q"] = queue.Queue()
         >>> q_1.put(1)
         >>> transactionmanager_1.commit()
-    
+
         >>> transactionmanager_2 = transaction.TransactionManager()
         >>> connection_2 = db.open(transaction_manager=transactionmanager_2)
         >>> root_2 = connection_2.root()
@@ -158,7 +158,7 @@ def test_legacy():
     CompositePersistentQueue as the expected names for the classes in this
     package.  They are now shortened, but the older names should stay
     available in _queue in perpetuity.
-    
+
         >>> import zc.queue._queue
         >>> zc.queue._queue.BucketQueue is queue.PersistentQueue
         True
