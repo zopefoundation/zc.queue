@@ -1,5 +1,7 @@
 from setuptools import setup
 
+tests_require = ["zope.testing"]
+
 setup(
     name="zc.queue",
     version="1.2dev",
@@ -16,7 +18,9 @@ setup(
         "ZODB3",
         "zope.interface",
     ],
-    tests_require=["zope.testing"],
+    tests_require=tests_require,
+    extras_require=dict(
+        test=tests_require),
     description=open('README.txt').read(),
     long_description=(
         open("CHANGES.txt").read() + "\n\n" +
