@@ -104,17 +104,17 @@ def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
 
 class CompositeQueue(Persistent):
     """Appropriate for queues that may become large.
-    
+
     Using this queue has one advantage and two possible disadvantages.
-    
+
     The advantage is that adding items to a large queue does not require
     writing the entire queue out to the database, since only one or two parts
     of it actually changes.  This can be a win for time, memory, and database
     size.
-    
+
     One disadvantage is that multiple concurrent adds may intermix the adds in
     a surprising way: see queue.txt for more details.
-    
+
     Another possible disadvantage is that this queue does not consistently
     enforce the policy that concurrent adds of the same item are not
     allowed: because one instance may go in two different composite buckets,
