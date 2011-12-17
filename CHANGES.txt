@@ -2,7 +2,7 @@
 CHANGES
 =======
 
-1.2 (unreleased)
+1.2 (2011-12-17)
 ================
 
 - Fixed undefined ZODB.POSException.StorageTransactionError in tests.
@@ -11,8 +11,11 @@ CHANGES
 
 - Added test extra to declare test dependency on ``zope.testing``.
 
-- Using Python's ``doctest`` module instead of depreacted
+- Using Python's ``doctest`` module instead of deprecated
   ``zope.testing.doctest``.
+
+- Clean up the generation of reST docs.
+
 
 1.1
 ===
