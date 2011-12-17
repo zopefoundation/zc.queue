@@ -1,6 +1,5 @@
 from ZODB import ConflictResolution, MappingStorage, POSException
 from zc import queue
-from zope.testing import module
 import doctest
 import unittest
 
@@ -16,6 +15,7 @@ import unittest
 # the ZODB.  Second, in the doctest it shows real examples of the queue usage,
 # with transaction managers and all: this gives a clearer picture of the
 # full context in which this conflict resolution code must dance.
+
 
 class ConflictResolvingMappingStorage_38(
     MappingStorage.MappingStorage,
@@ -74,7 +74,7 @@ class ConflictResolvingMappingStorage_39(
     def store(self, oid, serial, data, version, transaction):
         assert not version, "Versions are not supported"
         if transaction is not self._transaction:
-            raise ZODB.POSException.StorageTransactionError(self, transaction)
+            raise POSException.StorageTransactionError(self, transaction)
 
         old_tid = None
         tid_data = self._data.get(oid)
@@ -153,6 +153,7 @@ def test_deleted_bucket():
 
     """
 
+
 def test_legacy():
     """We used to promote the names PersistentQueue and
     CompositePersistentQueue as the expected names for the classes in this
@@ -167,13 +168,14 @@ def test_legacy():
 
     """
 
+
 def test_suite():
     return unittest.TestSuite((
         doctest.DocFileSuite(
-            'queue.txt', globs={'Queue':queue.Queue}),
+            'queue.txt', globs={'Queue': queue.Queue}),
         doctest.DocFileSuite(
             'queue.txt',
-            globs={'Queue':lambda: queue.CompositeQueue(2)}),
+            globs={'Queue': lambda: queue.CompositeQueue(2)}),
         doctest.DocTestSuite()
         ))
 

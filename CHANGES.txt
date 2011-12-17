@@ -5,6 +5,8 @@ CHANGES
 1.2 (unreleased)
 ================
 
+- Fixed undefined ZODB.POSException.StorageTransactionError in tests.
+
 - Let tests pass with ZODB 3.8 and ZODB 3.9.
 
 - Added test extra to declare test dependency on ``zope.testing``.
