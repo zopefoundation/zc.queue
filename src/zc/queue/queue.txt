@@ -393,6 +393,9 @@ transactions, are still in order.  One ordering might be
 
     >>> db.close() # cleanup
 
+
+-----
+
 .. [#why] The queue's `pull` method is actually the interesting part in why
     this constraint is used, and it becomes more so when you allow an
     arbitrary pull.  By asserting that you do not support having equal

@@ -1,6 +1,12 @@
 from setuptools import setup
 
+
+def read(*rnames):
+    return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
+
+
 tests_require = ["zope.testing"]
+
 
 setup(
     name="zc.queue",
@@ -20,11 +26,13 @@ setup(
     ],
     tests_require=tests_require,
     extras_require=dict(
-        test=tests_require),
-    description=open('README.txt').read(),
-    long_description=(
-        open("CHANGES.txt").read() + "\n\n" +
-        open("src/zc/queue/queue.txt").read()),
+        test=tests_require,
+        ),
+    description=read('README.txt'),
+    long_description='\n\n'.join([
+        read('src', 'zc', 'queue', 'queue.txt'),
+        read('CHANGES.txt'),
+        ]),
     keywords="zope zope3",
     zip_safe=False
     )
