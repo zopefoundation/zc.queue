@@ -1,5 +1,5 @@
 from ZODB import ConflictResolution, MappingStorage, POSException
-from zc import queue
+import zc.queue
 import doctest
 import unittest
 
@@ -113,7 +113,7 @@ def test_deleted_bucket():
         >>> connection_1 = db.open(transaction_manager=transactionmanager_1)
         >>> root_1 = connection_1.root()
 
-        >>> q_1 = root_1["q"] = queue.CompositeQueue()
+        >>> q_1 = root_1["q"] = zc.queue.CompositeQueue()
         >>> q_1.put(1)
         >>> transactionmanager_1.commit()
 
@@ -135,7 +135,7 @@ def test_deleted_bucket():
     With a simple queue, this will merge normally.
 
         >>> transactionmanager_1.abort()
-        >>> q_1 = root_1["q"] = queue.Queue()
+        >>> q_1 = root_1["q"] = zc.queue.Queue()
         >>> q_1.put(1)
         >>> transactionmanager_1.commit()
 
@@ -161,9 +161,9 @@ def test_legacy():
     available in _queue in perpetuity.
 
         >>> import zc.queue._queue
-        >>> zc.queue._queue.BucketQueue is queue.PersistentQueue
+        >>> zc.queue._queue.BucketQueue is zc.queue.PersistentQueue
         True
-        >>> queue.CompositeQueue is queue.CompositePersistentQueue
+        >>> zc.queue.CompositeQueue is zc.queue.CompositePersistentQueue
         True
 
     """
@@ -172,10 +172,10 @@ def test_legacy():
 def test_suite():
     return unittest.TestSuite((
         doctest.DocFileSuite(
-            'queue.txt', globs={'Queue': queue.Queue}),
+            'queue.txt', globs={'Queue': zc.queue.Queue}),
         doctest.DocFileSuite(
             'queue.txt',
-            globs={'Queue': lambda: queue.CompositeQueue(2)}),
+            globs={'Queue': lambda: zc.queue.CompositeQueue(2)}),
         doctest.DocTestSuite()
         ))
 
