@@ -1,9 +1,9 @@
-
 from persistent import Persistent
 from ZODB.POSException import ConflictError
 from zope import interface
 
 from zc.queue import interfaces
+
 
 class Queue(Persistent):
 
@@ -17,9 +17,9 @@ class Queue(Persistent):
             len_self = len(self._data)
             index += len_self
             if index < 0:
-                raise IndexError(index-len_self)
+                raise IndexError(index - len_self)
         res = self._data[index]
-        self._data = self._data[:index] + self._data[index+1:]
+        self._data = self._data[:index] + self._data[index + 1:]
         return res
 
     def put(self, item):
@@ -32,7 +32,7 @@ class Queue(Persistent):
         return iter(self._data)
 
     def __getitem__(self, index):
-        return self._data[index] # works with passing a slice too
+        return self._data[index]  # works with passing a slice too
 
     def __nonzero__(self):
         return bool(self._data)
@@ -41,22 +41,24 @@ class Queue(Persistent):
         return resolveQueueConflict(
             oldstate, committedstate, newstate)
 
+
 class BucketQueue(Queue):
 
     def _p_resolveConflict(self, oldstate, committedstate, newstate):
         return resolveQueueConflict(
             oldstate, committedstate, newstate, True)
 
-PersistentQueue = BucketQueue # for legacy instances, be conservative
+PersistentQueue = BucketQueue  # for legacy instances, be conservative
+
 
 def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
     # we only know how to merge _data.  If anything else is different,
     # puke.
     if set(committedstate.keys()) != set(newstate.keys()):
-        raise ConflictError # can't resolve
+        raise ConflictError  # can't resolve
     for key, val in newstate.items():
         if key != '_data' and val != committedstate[key]:
-            raise ConflictError # can't resolve
+            raise ConflictError  # can't resolve
     # basically, we are ok with anything--willing to merge--
     # unless committedstate and newstate have one or more of the
     # same deletions or additions in comparison to the oldstate.
@@ -84,10 +86,10 @@ def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
 
     if new_removed & committed_removed:
         # they both removed (claimed) the same one.  Puke.
-        raise ConflictError # can't resolve
+        raise ConflictError  # can't resolve
     elif new_added & committed_added:
         # they both added the same one.  Puke.
-        raise ConflictError # can't resolve
+        raise ConflictError  # can't resolve
     # Now we do the merge.  We'll merge into the committed state and
     # return it.
     mod_committed = []
@@ -125,12 +127,13 @@ class CompositeQueue(Persistent):
     instead, foregoing the advantages of the composite approach.
     """
 
-    # design note: one rejected strategy to try and enforce the "concurrent adds
-    # of the same object are not allowed" policy is to set a persistent flag on
-    # a queue when it reaches or exceeds the target size, and to start a new
-    # bucket only on the following transaction.  This would work in some
-    # scenarios, but breaks down when two transactions happen sequentially
-    # *while* a third transaction happens concurrently to both.
+    # design note: one rejected strategy to try and enforce the
+    # "concurrent adds of the same object are not allowed" policy is
+    # to set a persistent flag on a queue when it reaches or exceeds
+    # the target size, and to start a new bucket only on the following
+    # transaction.  This would work in some scenarios, but breaks down
+    # when two transactions happen sequentially *while* a third
+    # transaction happens concurrently to both.
 
     interface.implements(interfaces.IQueue)
 
@@ -149,7 +152,7 @@ class CompositeQueue(Persistent):
         ct = 0
         if index < 0:
             len_self = len(self)
-            rindex = index + len_self # not efficient, but quick and easy
+            rindex = index + len_self  # not efficient, but quick and easy
             if rindex < 0:
                 raise IndexError(index)
         else:
@@ -202,7 +205,7 @@ class CompositeQueue(Persistent):
                     stride_ct = stride
             return res
         else:
-            if index < 0: # not efficient, but quick and easy
+            if index < 0:  # not efficient, but quick and easy
                 len_self = len(self)
                 rindex = index + len_self
                 if rindex < 0:
@@ -217,4 +220,4 @@ class CompositeQueue(Persistent):
     def _p_resolveConflict(self, oldstate, committedstate, newstate):
         return resolveQueueConflict(oldstate, committedstate, newstate)
 
-CompositePersistentQueue = CompositeQueue # legacy
+CompositePersistentQueue = CompositeQueue  # legacy
