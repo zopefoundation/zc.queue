@@ -394,6 +394,132 @@ transactions, are still in order.  One ordering might be
     >>> db.close() # cleanup
 
 
+======================
+PersistentReferenceSet
+======================
+
+As `ZODB.ConflictResolution.PersistentReference` doesn't get handled
+properly in `set` due to lack of `__hash__` method, we define a class
+utilizing `__cmp__` method of contained items [#workaround]_.
+
+
+
+Let's make some Stubbed persistent reference object.
+
+    >>> from zc.queue.tests import StubPersistentReference
+    >>> pr1 = StubPersistentReference(1)
+    >>> pr2 = StubPersistentReference(2)
+    >>> pr3 = StubPersistentReference(3)
+
+Let's make copy of them to simulate different transaction states.
+
+    >>> import copy
+    >>> pr_c1 = copy.copy(pr1)
+    >>> pr_c2 = copy.copy(pr2)
+    >>> pr_c3 = copy.copy(pr3)
+    >>> pr1 == pr_c1
+    True
+    >>> pr2 == pr_c2
+    True
+    >>> pr3 == pr_c3
+    True
+    >>> id(pr1) == id(pr_c1)
+    False
+    >>> id(pr2) == id(pr_c2)
+    False
+    >>> id(pr3) == id(pr_c3)
+    False
+
+`set` doesn't handle persistent reference objects properly. All
+following set operations produce wrong results.
+
+    >>> set1 = set((pr1, pr2))
+    >>> len(set1)
+    2
+    >>> set2 = set((pr_c1, pr_c3))
+    >>> len(set2)
+    2
+    >>> set_c1 = set((pr_c1, pr_c2))
+    >>> len(set_c1)
+    2
+
+Minus operation:
+
+    >>> set3 = set1 - set2
+    >>> len(set3)
+    2
+    >>> set3
+    set([SPR (1), SPR (2)])
+
+Deduplication:
+
+    >>> set4 = set((pr1, pr2, pr3, pr_c1, pr_c2, pr_c3))
+    >>> len(set4)
+    6
+
+Contains:
+
+    >>> pr3 in set2
+    False
+
+Intersection:
+
+    >>> set1 & set2
+    set([])
+
+Compare:
+
+    >>> set1 == set_c1
+    False
+
+So we made `PersistentReferenceSet` acting as `set`.
+
+    >>> from zc.queue._queue import PersistentReferenceSet
+    >>> pr_set1 = PersistentReferenceSet((pr1, pr2))
+    >>> len(pr_set1)
+    2
+    >>> pr_set2 = PersistentReferenceSet((pr_c1, pr_c3))
+    >>> len(pr_set1)
+    2
+    >>> pr_set_c1 = PersistentReferenceSet((pr_c1, pr_c2))
+    >>> len(pr_set1)
+    2
+
+Minus operation:
+
+    >>> pr_set3 = pr_set1 - pr_set2
+    >>> len(pr_set3)
+    1
+    >>> pr_set3
+    PRSet((SPR (2),))
+
+Deduplication:
+
+    >>> pr_set4 = PersistentReferenceSet(
+    ...     (pr1, pr2, pr3, pr_c1, pr_c2, pr_c3))
+    >>> len(pr_set4)
+    3
+    >>> pr_set4
+    PRSet((SPR (1), SPR (2), SPR (3)))
+
+Contains:
+
+    >>> pr3 in pr_set2
+    True
+
+    >>> pr2 not in pr_set2
+    True
+
+Intersection:
+
+    >>> pr_set1 & pr_set2
+    PRSet((SPR (1),))
+
+Compare:
+
+    >>> pr_set1 == pr_set_c1
+    True
+
 -----
 
 .. [#why] The queue's `pull` method is actually the interesting part in why
@@ -404,7 +530,7 @@ transactions, are still in order.  One ordering might be
     state, it's a conflict error.  Ideally you don't enter another equal
     item in that queue again, or else in fact this is still an
     error-prone heuristic:
-    
+
       - start queue == [X];
       - begin transactions A and B;
       - B removes X and commits;
@@ -424,7 +550,7 @@ transactions, are still in order.  One ordering might be
     a better confidence of doing the right thing.
 
     Also, FWIW, this is policy I want: for my use cases, it would be
-    possible to put in two items in a queue that handle the same issue. 
+    possible to put in two items in a queue that handle the same issue.
     With the right equality code, this can be avoided with the policy
     the queue has now.
 
@@ -435,13 +561,10 @@ transactions, are still in order.  One ordering might be
     objects in a queue (or any other collection with conflict resolution
     code, such as a BTree), the collection will get a placeholder object
     (ZODB.ConflictResolution.PersistentReference), rather than the real
-    contained object.  This object has a standard Python __cmp__ based
-    on identity in memory (e.g. `id(obj)`).  The same oid will get the
-    same placeholder in the different states for conflict resolution, so
-    that may be sufficient for reasonable behavior in a queue as long as
-    only objects with the same oid may be considered equal.  (This is very
-    problematic behavior if your persistent object is a key in a BTree,
-    however.)
+    contained object.  This object has __cmp__ method, but doesn't have
+    __hash__ method, The same oid will get different placeholder in the
+    different states because of different identity in memory (e.g. `id(obj)`)
+    for conflict resolution, which is wrong behavior in a queue.
 
     Another is that, in ZEO, conflict resolution is currently done on
     the server, so the ZEO server must have a copy of the classes
@@ -456,3 +579,8 @@ transactions, are still in order.  One ordering might be
     the information it needs to do the comparison on itself, so the
     absence of the persistent object during conflict resolution is
     unimportant.
+
+.. [#workaround] The reason why we defined
+    `PersistentReferenceSet` is that there would be a significant risk
+    of unintended consequenses for some ZODB users if we add __hash__
+    method to PersistentReference.

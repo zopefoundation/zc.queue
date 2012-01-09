@@ -168,6 +168,19 @@ def test_legacy():
 
     """
 
+class StubPersistentReference(object):
+    def __init__(self, oid):
+        self.oid = oid
+
+    def __cmp__(self, other):
+        if self.oid == other.oid:
+            return 0
+        else:
+            raise ValueError("Can't compare")
+
+    def __repr__(self):
+        return "SPR (%d)" % self.oid
+
 
 def test_suite():
     return unittest.TestSuite((
