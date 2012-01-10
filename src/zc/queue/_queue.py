@@ -154,11 +154,9 @@ def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
     # we only know how to merge _data.  If anything else is different,
     # puke.
     if set(committedstate.keys()) != set(newstate.keys()):
-        print "ZCQUEUE WRONG ATTR"
         raise ConflictError  # can't resolve
     for key, val in newstate.items():
         if key != '_data' and val != committedstate[key]:
-            print "ZCQUEUE ATTR DIFF"
             raise ConflictError  # can't resolve
     # basically, we are ok with anything--willing to merge--
     # unless committedstate and newstate have one or more of the
@@ -187,7 +185,6 @@ def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
         # cleaned out by the parent in one of the two new transactions.
         # We can't know for sure, so we take the conservative route of
         # refusing to be resolvable.
-        print "ZCQUEUE EMPTYING BUCKET"
         raise ConflictError
 
     committed_added = committed_set - old_set
@@ -197,11 +194,9 @@ def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
 
     if new_removed & committed_removed:
         # they both removed (claimed) the same one.  Puke.
-        print "ZCQUEUE BOTH REMOVED"
         raise ConflictError  # can't resolve
     elif new_added & committed_added:
         # they both added the same one.  Puke.
-        print "ZCQUEUE BOTH ADDED"
         raise ConflictError  # can't resolve
     # Now we do the merge.  We'll merge into the committed state and
     # return it.
