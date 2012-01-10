@@ -33,6 +33,7 @@ Queues can be instantiated with no arguments.
 
 The basic API is simple: use `put` to add items to the back of the queue, and
 `pull` to pull things off the queue, defaulting to the front of the queue.
+Note that `Item` could be either persistent or non persistent object.
 
     >>> q.put(Item(1))
     >>> q.put(Item(2))
