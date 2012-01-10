@@ -34,11 +34,11 @@ Queues can be instantiated with no arguments.
 The basic API is simple: use `put` to add items to the back of the queue, and
 `pull` to pull things off the queue, defaulting to the front of the queue.
 
-    >>> q.put(1)
-    >>> q.put(2)
+    >>> q.put(Item(1))
+    >>> q.put(Item(2))
     >>> q.pull()
     1
-    >>> q.put(3)
+    >>> q.put(Item(3))
     >>> q.pull()
     2
     >>> q.pull()
@@ -47,9 +47,9 @@ The basic API is simple: use `put` to add items to the back of the queue, and
 The `pull` method takes an optional zero-based index argument, and can accept
 negative values.
 
-    >>> q.put(4)
-    >>> q.put(5)
-    >>> q.put(6)
+    >>> q.put(Item(4))
+    >>> q.put(Item(5))
+    >>> q.put(Item(6))
     >>> q.pull(-1)
     6
     >>> q.pull(1)
@@ -66,8 +66,8 @@ Requesting an item from an empty queue raises an IndexError.
 
 Requesting an invalid index value does the same.
 
-    >>> q.put(7)
-    >>> q.put(8)
+    >>> q.put(Item(7))
+    >>> q.put(Item(8))
     >>> q.pull(2) # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
@@ -92,9 +92,9 @@ Beyond these core queue operations, queues support len...
     Traceback (most recent call last):
     ...
     StopIteration
-    >>> q.put(9)
-    >>> q.put(10)
-    >>> q.put(11)
+    >>> q.put(Item(9))
+    >>> q.put(Item(10))
+    >>> q.put(Item(11))
     >>> iter(q).next()
     9
     >>> [i for i in q]
@@ -117,7 +117,7 @@ Beyond these core queue operations, queues support len...
 
 ...and list-like bracket access (which again does *not* empty the queue).
 
-    >>> q.put(12)
+    >>> q.put(Item(12))
     >>> q[0]
     12
     >>> q.pull()
@@ -127,7 +127,7 @@ Beyond these core queue operations, queues support len...
     ...
     IndexError: ...
     >>> for i in range (13, 23):
-    ...     q.put(i)
+    ...     q.put(Item(i))
     ...
     >>> q[0]
     13
@@ -184,8 +184,8 @@ sooner using default `pull` calls.
 In this example, even though q_1 is modified first, q_2's transaction is
 committed first, so q_2's addition is first after the merge.
 
-    >>> q_1.put(1001)
-    >>> q_2.put(1000)
+    >>> q_1.put(Item(1001))
+    >>> q_2.put(Item(1000))
     >>> transactionmanager_2.commit()
     >>> transactionmanager_1.commit()
     >>> connection_1.sync()
@@ -203,9 +203,9 @@ commit's.
     >>> from zc import queue
     >>> if isinstance(q_1, queue.Queue):
     ...     for i in range(5):
-    ...         q_1.put(i)
+    ...         q_1.put(Item(i))
     ...     for i in range(1002, 1005):
-    ...         q_2.put(i)
+    ...         q_2.put(Item(i))
     ...     transactionmanager_2.commit()
     ...     transactionmanager_1.commit()
     ...     connection_1.sync()
@@ -223,8 +223,8 @@ for that here to get a reliable queue state.
 
     >>> if isinstance(q_1, queue.CompositeQueue):
     ...     for i1, i2 in ((1002, 1003), (1004, 0), (1, 2), (3, 4)):
-    ...         q_1.put(i1)
-    ...         q_2.put(i2)
+    ...         q_1.put(Item(i1))
+    ...         q_2.put(Item(i2))
     ...         transactionmanager_1.commit()
     ...         transactionmanager_2.commit()
     ...         connection_1.sync()
@@ -240,13 +240,16 @@ Whichever kind of queue we have, we now have the following values.
 
 If two users try to add the same item, then a conflict error is raised.
 
-    >>> q_1.put(5)
-    >>> q_2.put(5)
+    >>> five = Item(5)
+    >>> q_1.put(five)
+    >>> q_2.put(five)
     >>> transactionmanager_1.commit()
-    >>> transactionmanager_2.commit() # doctest: +ELLIPSIS
-    Traceback (most recent call last):
-    ...
-    ConflictError: ...
+    >>> from ZODB.POSException import ConflictError, InvalidObjectReference
+    >>> try:
+    ...     transactionmanager_2.commit() # doctest: +ELLIPSIS
+    ... except (ConflictError, InvalidObjectReference):
+    ...     print "Conflict Error"
+    Conflict Error
     >>> transactionmanager_2.abort()
     >>> connection_1.sync()
     >>> connection_2.sync()
@@ -314,8 +317,8 @@ Also importantly, users can concurrently remove and add items to a queue.
     1003
     >>> q_1.pull()
     1004
-    >>> q_2.put(6)
-    >>> q_2.put(7)
+    >>> q_2.put(Item(6))
+    >>> q_2.put(Item(7))
     >>> transactionmanager_1.commit()
     >>> transactionmanager_2.commit()
     >>> connection_1.sync()
@@ -341,10 +344,10 @@ duress, with multiple simultaneous puts and pulls.
     >>> res_2
     [6, 4, 2]
     >>> for i in range(8, 12):
-    ...     q_1.put(i)
+    ...     q_1.put(Item(i))
     ...
     >>> for i in range(12, 16):
-    ...     q_2.put(i)
+    ...     q_2.put(Item(i))
     ...
     >>> list(q_1)
     [2, 4, 6, 8, 9, 10, 11]
@@ -378,11 +381,11 @@ transactions, are still in order.  One ordering might be
     ...     secondsrc_1 = firstsrc_1[:]
     ...     secondsrc_2 = firstsrc_2[:]
     ...     for val in [12, 13, 14, 15]:
-    ...         firstsrc_1.remove(val)
-    ...         firstsrc_2.remove(val)
+    ...         firstsrc_1.remove(Item(val))
+    ...         firstsrc_2.remove(Item(val))
     ...     for val in [8, 9, 10, 11]:
-    ...         secondsrc_1.remove(val)
-    ...         secondsrc_2.remove(val)
+    ...         secondsrc_1.remove(Item(val))
+    ...         secondsrc_2.remove(Item(val))
     ...     res_1 = firstsrc_1 + secondsrc_1
     ...     res_2 = firstsrc_2 + secondsrc_2
     ...
@@ -401,7 +404,6 @@ PersistentReferenceSet
 As `ZODB.ConflictResolution.PersistentReference` doesn't get handled
 properly in `set` due to lack of `__hash__` method, we define a class
 utilizing `__cmp__` method of contained items [#workaround]_.
-
 
 
 Let's make some Stubbed persistent reference object.
