@@ -168,6 +168,7 @@ def test_legacy():
 
     """
 
+
 class StubPersistentReference(object):
     def __init__(self, oid):
         self.oid = oid
