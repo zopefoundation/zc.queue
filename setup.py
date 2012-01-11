@@ -12,7 +12,7 @@ tests_require = ["zope.testing"]
 
 setup(
     name="zc.queue",
-    version="1.3dev",
+    version="1.3",
     license="ZPL 2.1",
     author="Zope Project",
     author_email="zope-dev@zope.org",
