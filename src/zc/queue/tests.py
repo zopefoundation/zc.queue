@@ -189,8 +189,7 @@ class PersistentObject(Persistent):
         self.value = value
 
     def __eq__(self, other):
-        if self.value == other.value:
-            return True
+        return self.value == other.value
 
     def __repr__(self):
         return "%s" % self.value

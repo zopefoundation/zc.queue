@@ -75,7 +75,7 @@ class PersistentReferenceProxy(object):
             return False
 
     def __repr__(self):
-        return str(self.pr)
+        return self.pr.__repr__()
 
 
 def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
