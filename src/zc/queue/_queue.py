@@ -1,4 +1,5 @@
 from persistent import Persistent
+from ZODB.ConflictResolution import PersistentReference
 from ZODB.POSException import ConflictError
 from zope import interface
 
@@ -51,6 +52,32 @@ class BucketQueue(Queue):
 PersistentQueue = BucketQueue  # for legacy instances, be conservative
 
 
+class PersistentReferenceProxy(object):
+    """PersistentReferenceProxy
+
+    `ZODB.ConflictResolution.PersistentReference` doesn't get handled correctly
+    in the resolveQueueConflict function due to lack of the `__hash__` method.
+    So we make workaround here to utilize `__cmp__` method of
+    `PersistentReference`.
+
+    """
+    def __init__(self, pr):
+        assert isinstance(pr, PersistentReference)
+        self.pr = pr
+
+    def __hash__(self):
+        return 1
+
+    def __eq__(self, other):
+        try:
+            return self.pr == other.pr
+        except ValueError:
+            return False
+
+    def __repr__(self):
+        return self.pr.__repr__()
+
+
 def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
     # we only know how to merge _data.  If anything else is different,
     # puke.
@@ -62,9 +89,14 @@ def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
     # basically, we are ok with anything--willing to merge--
     # unless committedstate and newstate have one or more of the
     # same deletions or additions in comparison to the oldstate.
-    old = oldstate['_data']
-    committed = committedstate['_data']
-    new = newstate['_data']
+
+    # If items in the queue are persistent object, we need to wrap
+    # PersistentReference objects. See 'queue.txt'
+    wrap = lambda x: (
+        PersistentReferenceProxy(x) if isinstance(x, PersistentReference) else x)
+    old = map(wrap, oldstate['_data'])
+    committed = map(wrap, committedstate['_data'])
+    new = map(wrap, newstate['_data'])
 
     old_set = set(old)
     committed_set = set(committed)
@@ -93,13 +125,14 @@ def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
     # Now we do the merge.  We'll merge into the committed state and
     # return it.
     mod_committed = []
+    unwrap = lambda x: x.pr if isinstance(x, PersistentReferenceProxy) else x
     for v in committed:
         if v not in new_removed:
-            mod_committed.append(v)
+            mod_committed.append(unwrap(v))
     if new_added:
         ordered_new_added = new[-len(new_added):]
         assert set(ordered_new_added) == new_added
-        mod_committed.extend(ordered_new_added)
+        mod_committed.extend(map(unwrap, ordered_new_added))
     committedstate['_data'] = tuple(mod_committed)
     return committedstate
 

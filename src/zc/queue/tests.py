@@ -1,7 +1,8 @@
 from ZODB import ConflictResolution, MappingStorage, POSException
-import zc.queue
+from persistent import Persistent
 import doctest
 import unittest
+import zc.queue
 
 # TODO: this approach is useful, but fragile.  It also puts a dependency in
 # this package on the ZODB, when otherwise it would only depend on persistent.
@@ -169,13 +170,53 @@ def test_legacy():
     """
 
 
+class StubPersistentReference(ConflictResolution.PersistentReference):
+    def __init__(self, oid):
+        self.oid = oid
+
+    def __cmp__(self, other):
+        if self.oid == other.oid:
+            return 0
+        else:
+            raise ValueError("Can't compare")
+
+    def __repr__(self):
+        return "SPR (%d)" % self.oid
+
+
+class PersistentObject(Persistent):
+    def __init__(self, value):
+        self.value = value
+
+    def __eq__(self, other):
+        return self.value == other.value
+
+    def __repr__(self):
+        return "%s" % self.value
+
+
 def test_suite():
     return unittest.TestSuite((
         doctest.DocFileSuite(
-            'queue.txt', globs={'Queue': zc.queue.Queue}),
+            'queue.txt',
+            globs={
+                'Queue': zc.queue.Queue,
+                'Item': PersistentObject}),
         doctest.DocFileSuite(
             'queue.txt',
-            globs={'Queue': lambda: zc.queue.CompositeQueue(2)}),
+            globs={
+                'Queue': lambda: zc.queue.CompositeQueue(2),
+                'Item': PersistentObject}),
+        doctest.DocFileSuite(
+            'queue.txt',
+            globs={
+                'Queue': zc.queue.Queue,
+                'Item': lambda x: x}),
+        doctest.DocFileSuite(
+            'queue.txt',
+            globs={
+                'Queue': lambda: zc.queue.CompositeQueue(2),
+                'Item': lambda x: x}),
         doctest.DocTestSuite()
         ))
 

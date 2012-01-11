@@ -33,12 +33,13 @@ Queues can be instantiated with no arguments.
 
 The basic API is simple: use `put` to add items to the back of the queue, and
 `pull` to pull things off the queue, defaulting to the front of the queue.
+Note that `Item` could be either persistent or non persistent object.
 
-    >>> q.put(1)
-    >>> q.put(2)
+    >>> q.put(Item(1))
+    >>> q.put(Item(2))
     >>> q.pull()
     1
-    >>> q.put(3)
+    >>> q.put(Item(3))
     >>> q.pull()
     2
     >>> q.pull()
@@ -47,9 +48,9 @@ The basic API is simple: use `put` to add items to the back of the queue, and
 The `pull` method takes an optional zero-based index argument, and can accept
 negative values.
 
-    >>> q.put(4)
-    >>> q.put(5)
-    >>> q.put(6)
+    >>> q.put(Item(4))
+    >>> q.put(Item(5))
+    >>> q.put(Item(6))
     >>> q.pull(-1)
     6
     >>> q.pull(1)
@@ -66,8 +67,8 @@ Requesting an item from an empty queue raises an IndexError.
 
 Requesting an invalid index value does the same.
 
-    >>> q.put(7)
-    >>> q.put(8)
+    >>> q.put(Item(7))
+    >>> q.put(Item(8))
     >>> q.pull(2) # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
@@ -92,9 +93,9 @@ Beyond these core queue operations, queues support len...
     Traceback (most recent call last):
     ...
     StopIteration
-    >>> q.put(9)
-    >>> q.put(10)
-    >>> q.put(11)
+    >>> q.put(Item(9))
+    >>> q.put(Item(10))
+    >>> q.put(Item(11))
     >>> iter(q).next()
     9
     >>> [i for i in q]
@@ -117,7 +118,7 @@ Beyond these core queue operations, queues support len...
 
 ...and list-like bracket access (which again does *not* empty the queue).
 
-    >>> q.put(12)
+    >>> q.put(Item(12))
     >>> q[0]
     12
     >>> q.pull()
@@ -127,7 +128,7 @@ Beyond these core queue operations, queues support len...
     ...
     IndexError: ...
     >>> for i in range (13, 23):
-    ...     q.put(i)
+    ...     q.put(Item(i))
     ...
     >>> q[0]
     13
@@ -184,8 +185,8 @@ sooner using default `pull` calls.
 In this example, even though q_1 is modified first, q_2's transaction is
 committed first, so q_2's addition is first after the merge.
 
-    >>> q_1.put(1001)
-    >>> q_2.put(1000)
+    >>> q_1.put(Item(1001))
+    >>> q_2.put(Item(1000))
     >>> transactionmanager_2.commit()
     >>> transactionmanager_1.commit()
     >>> connection_1.sync()
@@ -203,9 +204,9 @@ commit's.
     >>> from zc import queue
     >>> if isinstance(q_1, queue.Queue):
     ...     for i in range(5):
-    ...         q_1.put(i)
+    ...         q_1.put(Item(i))
     ...     for i in range(1002, 1005):
-    ...         q_2.put(i)
+    ...         q_2.put(Item(i))
     ...     transactionmanager_2.commit()
     ...     transactionmanager_1.commit()
     ...     connection_1.sync()
@@ -223,8 +224,8 @@ for that here to get a reliable queue state.
 
     >>> if isinstance(q_1, queue.CompositeQueue):
     ...     for i1, i2 in ((1002, 1003), (1004, 0), (1, 2), (3, 4)):
-    ...         q_1.put(i1)
-    ...         q_2.put(i2)
+    ...         q_1.put(Item(i1))
+    ...         q_2.put(Item(i2))
     ...         transactionmanager_1.commit()
     ...         transactionmanager_2.commit()
     ...         connection_1.sync()
@@ -240,13 +241,16 @@ Whichever kind of queue we have, we now have the following values.
 
 If two users try to add the same item, then a conflict error is raised.
 
-    >>> q_1.put(5)
-    >>> q_2.put(5)
+    >>> five = Item(5)
+    >>> q_1.put(five)
+    >>> q_2.put(five)
     >>> transactionmanager_1.commit()
-    >>> transactionmanager_2.commit() # doctest: +ELLIPSIS
-    Traceback (most recent call last):
-    ...
-    ConflictError: ...
+    >>> from ZODB.POSException import ConflictError, InvalidObjectReference
+    >>> try:
+    ...     transactionmanager_2.commit() # doctest: +ELLIPSIS
+    ... except (ConflictError, InvalidObjectReference):
+    ...     print "Conflict Error"
+    Conflict Error
     >>> transactionmanager_2.abort()
     >>> connection_1.sync()
     >>> connection_2.sync()
@@ -314,8 +318,8 @@ Also importantly, users can concurrently remove and add items to a queue.
     1003
     >>> q_1.pull()
     1004
-    >>> q_2.put(6)
-    >>> q_2.put(7)
+    >>> q_2.put(Item(6))
+    >>> q_2.put(Item(7))
     >>> transactionmanager_1.commit()
     >>> transactionmanager_2.commit()
     >>> connection_1.sync()
@@ -341,10 +345,10 @@ duress, with multiple simultaneous puts and pulls.
     >>> res_2
     [6, 4, 2]
     >>> for i in range(8, 12):
-    ...     q_1.put(i)
+    ...     q_1.put(Item(i))
     ...
     >>> for i in range(12, 16):
-    ...     q_2.put(i)
+    ...     q_2.put(Item(i))
     ...
     >>> list(q_1)
     [2, 4, 6, 8, 9, 10, 11]
@@ -378,11 +382,11 @@ transactions, are still in order.  One ordering might be
     ...     secondsrc_1 = firstsrc_1[:]
     ...     secondsrc_2 = firstsrc_2[:]
     ...     for val in [12, 13, 14, 15]:
-    ...         firstsrc_1.remove(val)
-    ...         firstsrc_2.remove(val)
+    ...         firstsrc_1.remove(Item(val))
+    ...         firstsrc_2.remove(Item(val))
     ...     for val in [8, 9, 10, 11]:
-    ...         secondsrc_1.remove(val)
-    ...         secondsrc_2.remove(val)
+    ...         secondsrc_1.remove(Item(val))
+    ...         secondsrc_2.remove(Item(val))
     ...     res_1 = firstsrc_1 + secondsrc_1
     ...     res_2 = firstsrc_2 + secondsrc_2
     ...
@@ -392,6 +396,191 @@ transactions, are still in order.  One ordering might be
     [8, 9, 10, 11, 12, 13, 14, 15]
 
     >>> db.close() # cleanup
+
+
+========================
+PersistentReferenceProxy
+========================
+
+As `ZODB.ConflictResolution.PersistentReference` doesn't get handled
+properly in `set` due to lack of `__hash__` method, we define a class
+utilizing `__cmp__` method of contained items [#workaround]_.
+
+
+Let's make some stub persistent reference objects. Also make some
+objects that have same oid to simulate different transaction states.
+
+    >>> from zc.queue.tests import StubPersistentReference
+    >>> pr1 = StubPersistentReference(1)
+    >>> pr2 = StubPersistentReference(2)
+    >>> pr3 = StubPersistentReference(3)
+    >>> pr_c1 = StubPersistentReference(1)
+    >>> pr_c2 = StubPersistentReference(2)
+    >>> pr_c3 = StubPersistentReference(3)
+
+    >>> pr1 == pr_c1
+    True
+    >>> pr2 == pr_c2
+    True
+    >>> pr3 == pr_c3
+    True
+    >>> id(pr1) == id(pr_c1)
+    False
+    >>> id(pr2) == id(pr_c2)
+    False
+    >>> id(pr3) == id(pr_c3)
+    False
+
+    >>> set1 = set((pr1, pr2))
+    >>> set1
+    set([SPR (1), SPR (2)])
+    >>> len(set1)
+    2
+    >>> set2 = set((pr_c1, pr_c3))
+    >>> set2
+    set([SPR (1), SPR (3)])
+    >>> len(set2)
+    2
+    >>> set_c1 = set((pr_c1, pr_c2))
+    >>> set_c1
+    set([SPR (1), SPR (2)])
+    >>> len(set_c1)
+    2
+
+`set` doesn't handle persistent reference objects properly. All
+following set operations produce wrong results.
+
+Deduplication:
+
+    >>> set((pr1, pr_c1))
+    set([SPR (1), SPR (1)])
+    >>> set((pr2, pr_c2))
+    set([SPR (2), SPR (2)])
+    >>> set((pr1, pr_c1, pr2))
+    set([SPR (1), SPR (1), SPR (2)])
+    >>> set4 = set((pr1, pr2, pr3, pr_c1, pr_c2, pr_c3))
+    >>> len(set4)
+    6
+
+Minus operation:
+
+    >>> set3 = set1 - set2
+    >>> len(set3)
+    2
+    >>> set3
+    set([SPR (1), SPR (2)])
+
+Contains:
+
+    >>> pr3 in set2
+    False
+
+Intersection:
+
+    >>> set1 & set2
+    set([])
+
+Compare:
+
+    >>> set1 == set_c1
+    False
+
+So we made `PersistentReferenceProxy` wrapping `PersistentReference`
+to work with sets.
+
+    >>> from zc.queue._queue import PersistentReferenceProxy
+    >>> prp1 = PersistentReferenceProxy(pr1)
+    >>> prp2 = PersistentReferenceProxy(pr2)
+    >>> prp3 = PersistentReferenceProxy(pr3)
+    >>> prp_c1 = PersistentReferenceProxy(pr_c1)
+    >>> prp_c2 = PersistentReferenceProxy(pr_c2)
+    >>> prp_c3 = PersistentReferenceProxy(pr_c3)
+    >>> prp1 == prp_c1
+    True
+    >>> prp2 == prp_c2
+    True
+    >>> prp3 == prp_c3
+    True
+    >>> id(prp1) == id(prp_c1)
+    False
+    >>> id(prp2) == id(prp_c2)
+    False
+    >>> id(prp3) == id(prp_c3)
+    False
+
+    >>> set1 = set((prp1, prp2))
+    >>> set1
+    set([SPR (1), SPR (2)])
+    >>> len(set1)
+    2
+    >>> set2 = set((prp_c1, prp_c3))
+    >>> set2
+    set([SPR (1), SPR (3)])
+    >>> len(set2)
+    2
+    >>> set_c1 = set((prp_c1, prp_c2))
+    >>> set_c1
+    set([SPR (1), SPR (2)])
+    >>> len(set_c1)
+    2
+
+`set` handles persistent reference properly now. All following set
+operations produce correct results.
+
+Deduplication:
+
+    >>> set4 = set((prp1, prp2, prp3, prp_c1, prp_c2, prp_c3))
+    >>> len(set4)
+    3
+    >>> set((prp1, prp_c1))
+    set([SPR (1)])
+    >>> set((prp2, prp_c2))
+    set([SPR (2)])
+    >>> set((prp1, prp_c1, prp2))
+    set([SPR (1), SPR (2)])
+
+Minus operation:
+
+    >>> set3 = set1 - set2
+    >>> len(set3)
+    1
+    >>> set3
+    set([SPR (2)])
+    >>> set1 - set1
+    set([])
+    >>> set2 - set3
+    set([SPR (1), SPR (3)])
+    >>> set3 - set2
+    set([SPR (2)])
+
+Contains:
+
+    >>> prp3 in set2
+    True
+    >>> prp1 in set2
+    True
+    >>> prp_c1 in set2
+    True
+    >>> prp2 not in set2
+    True
+
+Intersection:
+
+    >>> set1 & set2
+    set([SPR (1)])
+    >>> set1 & set_c1
+    set([SPR (1), SPR (2)])
+    >>> set2 & set3
+    set([])
+
+Compare:
+
+    >>> set1 == set_c1
+    True
+    >>> set1 == set2
+    False
+    >>> set1 == set4
+    False
 
 
 -----
@@ -404,7 +593,7 @@ transactions, are still in order.  One ordering might be
     state, it's a conflict error.  Ideally you don't enter another equal
     item in that queue again, or else in fact this is still an
     error-prone heuristic:
-    
+
       - start queue == [X];
       - begin transactions A and B;
       - B removes X and commits;
@@ -424,7 +613,7 @@ transactions, are still in order.  One ordering might be
     a better confidence of doing the right thing.
 
     Also, FWIW, this is policy I want: for my use cases, it would be
-    possible to put in two items in a queue that handle the same issue. 
+    possible to put in two items in a queue that handle the same issue.
     With the right equality code, this can be avoided with the policy
     the queue has now.
 
@@ -435,13 +624,10 @@ transactions, are still in order.  One ordering might be
     objects in a queue (or any other collection with conflict resolution
     code, such as a BTree), the collection will get a placeholder object
     (ZODB.ConflictResolution.PersistentReference), rather than the real
-    contained object.  This object has a standard Python __cmp__ based
-    on identity in memory (e.g. `id(obj)`).  The same oid will get the
-    same placeholder in the different states for conflict resolution, so
-    that may be sufficient for reasonable behavior in a queue as long as
-    only objects with the same oid may be considered equal.  (This is very
-    problematic behavior if your persistent object is a key in a BTree,
-    however.)
+    contained object.  This object has __cmp__ method, but doesn't have
+    __hash__ method, The same oid will get different placeholder in the
+    different states because of different identity in memory (e.g. `id(obj)`)
+    for conflict resolution, which is wrong behavior in a queue.
 
     Another is that, in ZEO, conflict resolution is currently done on
     the server, so the ZEO server must have a copy of the classes
@@ -456,3 +642,8 @@ transactions, are still in order.  One ordering might be
     the information it needs to do the comparison on itself, so the
     absence of the persistent object during conflict resolution is
     unimportant.
+
+.. [#workaround] The reason why we defined
+    `PersistentReferenceProxy` is that there would be a significant risk
+    of unintended consequenses for some ZODB users if we add __hash__
+    method to PersistentReference.
