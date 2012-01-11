@@ -398,28 +398,26 @@ transactions, are still in order.  One ordering might be
     >>> db.close() # cleanup
 
 
-======================
-PersistentReferenceSet
-======================
+========================
+PersistentReferenceProxy
+========================
 
 As `ZODB.ConflictResolution.PersistentReference` doesn't get handled
 properly in `set` due to lack of `__hash__` method, we define a class
 utilizing `__cmp__` method of contained items [#workaround]_.
 
 
-Let's make some Stubbed persistent reference object.
+Let's make some stub persistent reference objects. Also make some
+objects that have same oid to simulate different transaction states.
 
     >>> from zc.queue.tests import StubPersistentReference
     >>> pr1 = StubPersistentReference(1)
     >>> pr2 = StubPersistentReference(2)
     >>> pr3 = StubPersistentReference(3)
+    >>> pr_c1 = StubPersistentReference(1)
+    >>> pr_c2 = StubPersistentReference(2)
+    >>> pr_c3 = StubPersistentReference(3)
 
-Let's make copy of them to simulate different transaction states.
-
-    >>> import copy
-    >>> pr_c1 = copy.copy(pr1)
-    >>> pr_c2 = copy.copy(pr2)
-    >>> pr_c3 = copy.copy(pr3)
     >>> pr1 == pr_c1
     True
     >>> pr2 == pr_c2
@@ -433,18 +431,36 @@ Let's make copy of them to simulate different transaction states.
     >>> id(pr3) == id(pr_c3)
     False
 
-`set` doesn't handle persistent reference objects properly. All
-following set operations produce wrong results.
-
     >>> set1 = set((pr1, pr2))
+    >>> set1
+    set([SPR (1), SPR (2)])
     >>> len(set1)
     2
     >>> set2 = set((pr_c1, pr_c3))
+    >>> set2
+    set([SPR (1), SPR (3)])
     >>> len(set2)
     2
     >>> set_c1 = set((pr_c1, pr_c2))
+    >>> set_c1
+    set([SPR (1), SPR (2)])
     >>> len(set_c1)
     2
+
+`set` doesn't handle persistent reference objects properly. All
+following set operations produce wrong results.
+
+Deduplication:
+
+    >>> set((pr1, pr_c1))
+    set([SPR (1), SPR (1)])
+    >>> set((pr2, pr_c2))
+    set([SPR (2), SPR (2)])
+    >>> set((pr1, pr_c1, pr2))
+    set([SPR (1), SPR (1), SPR (2)])
+    >>> set4 = set((pr1, pr2, pr3, pr_c1, pr_c2, pr_c3))
+    >>> len(set4)
+    6
 
 Minus operation:
 
@@ -453,12 +469,6 @@ Minus operation:
     2
     >>> set3
     set([SPR (1), SPR (2)])
-
-Deduplication:
-
-    >>> set4 = set((pr1, pr2, pr3, pr_c1, pr_c2, pr_c3))
-    >>> len(set4)
-    6
 
 Contains:
 
@@ -475,75 +485,102 @@ Compare:
     >>> set1 == set_c1
     False
 
-So we made `PersistentReferenceSet` acting as `set`.
+So we made `PersistentReferenceProxy` wrapping `PersistentReference`
+to work with sets.
 
-    >>> from zc.queue._queue import PersistentReferenceSet
-    >>> pr_set1 = PersistentReferenceSet((pr1, pr2))
-    >>> len(pr_set1)
+    >>> from zc.queue._queue import PersistentReferenceProxy
+    >>> prp1 = PersistentReferenceProxy(pr1)
+    >>> prp2 = PersistentReferenceProxy(pr2)
+    >>> prp3 = PersistentReferenceProxy(pr3)
+    >>> prp_c1 = PersistentReferenceProxy(pr_c1)
+    >>> prp_c2 = PersistentReferenceProxy(pr_c2)
+    >>> prp_c3 = PersistentReferenceProxy(pr_c3)
+    >>> prp1 == prp_c1
+    True
+    >>> prp2 == prp_c2
+    True
+    >>> prp3 == prp_c3
+    True
+    >>> id(prp1) == id(prp_c1)
+    False
+    >>> id(prp2) == id(prp_c2)
+    False
+    >>> id(prp3) == id(prp_c3)
+    False
+
+    >>> set1 = set((prp1, prp2))
+    >>> set1
+    set([SPR (1), SPR (2)])
+    >>> len(set1)
     2
-    >>> pr_set2 = PersistentReferenceSet((pr_c1, pr_c3))
-    >>> len(pr_set1)
+    >>> set2 = set((prp_c1, prp_c3))
+    >>> set2
+    set([SPR (1), SPR (3)])
+    >>> len(set2)
     2
-    >>> pr_set_c1 = PersistentReferenceSet((pr_c1, pr_c2))
-    >>> len(pr_set1)
+    >>> set_c1 = set((prp_c1, prp_c2))
+    >>> set_c1
+    set([SPR (1), SPR (2)])
+    >>> len(set_c1)
     2
 
-Minus operation:
-
-    >>> pr_set3 = pr_set1 - pr_set2
-    >>> len(pr_set3)
-    1
-    >>> pr_set3
-    PRSet((SPR (2),))
-    >>> pr_set1 - pr_set1
-    PRSet(())
-    >>> pr_set2 - pr_set3
-    PRSet((SPR (1), SPR (3)))
-    >>> pr_set3 - pr_set2
-    PRSet((SPR (2),))
+`set` handles persistent reference properly now. All following set
+operations produce correct results.
 
 Deduplication:
 
-    >>> pr_set4 = PersistentReferenceSet(
-    ...     (pr1, pr2, pr3, pr_c1, pr_c2, pr_c3))
-    >>> len(pr_set4)
+    >>> set4 = set((prp1, prp2, prp3, prp_c1, prp_c2, prp_c3))
+    >>> len(set4)
     3
-    >>> pr_set4
-    PRSet((SPR (1), SPR (2), SPR (3)))
+    >>> set((prp1, prp_c1))
+    set([SPR (1)])
+    >>> set((prp2, prp_c2))
+    set([SPR (2)])
+    >>> set((prp1, prp_c1, prp2))
+    set([SPR (1), SPR (2)])
+
+Minus operation:
+
+    >>> set3 = set1 - set2
+    >>> len(set3)
+    1
+    >>> set3
+    set([SPR (2)])
+    >>> set1 - set1
+    set([])
+    >>> set2 - set3
+    set([SPR (1), SPR (3)])
+    >>> set3 - set2
+    set([SPR (2)])
 
 Contains:
 
-    >>> pr3 in pr_set2
+    >>> prp3 in set2
     True
-    >>> pr1 in pr_set2
+    >>> prp1 in set2
     True
-    >>> pr_c1 in pr_set2
+    >>> prp_c1 in set2
     True
-    >>> pr2 not in pr_set2
+    >>> prp2 not in set2
     True
 
 Intersection:
 
-    >>> pr_set1 & pr_set2
-    PRSet((SPR (1),))
-    >>> pr_set1 & pr_set_c1
-    PRSet((SPR (1), SPR (2)))
-    >>> pr_set2 & pr_set3
-    PRSet(())
+    >>> set1 & set2
+    set([SPR (1)])
+    >>> set1 & set_c1
+    set([SPR (1), SPR (2)])
+    >>> set2 & set3
+    set([])
 
 Compare:
 
-    >>> pr_set1 == pr_set_c1
+    >>> set1 == set_c1
     True
-    >>> pr_set1 == pr_set2
-    Traceback (most recent call last):
-    ...
-    ValueError: can't reliably compare against different PersistentReferences
-
-    >>> pr_set1 == pr_set4
-    Traceback (most recent call last):
-    ...
-    ValueError: can't reliably compare against different PersistentReferences
+    >>> set1 == set2
+    False
+    >>> set1 == set4
+    False
 
 
 -----
@@ -607,6 +644,6 @@ Compare:
     unimportant.
 
 .. [#workaround] The reason why we defined
-    `PersistentReferenceSet` is that there would be a significant risk
+    `PersistentReferenceProxy` is that there would be a significant risk
     of unintended consequenses for some ZODB users if we add __hash__
     method to PersistentReference.

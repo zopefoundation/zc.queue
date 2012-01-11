@@ -170,7 +170,7 @@ def test_legacy():
     """
 
 
-class StubPersistentReference(object):
+class StubPersistentReference(ConflictResolution.PersistentReference):
     def __init__(self, oid):
         self.oid = oid
 

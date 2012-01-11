@@ -52,8 +52,8 @@ class BucketQueue(Queue):
 PersistentQueue = BucketQueue  # for legacy instances, be conservative
 
 
-class PersistentReferenceSet(object):
-    """PersistentReferenceSet
+class PersistentReferenceProxy(object):
+    """PersistentReferenceProxy
 
     `ZODB.ConflictResolution.PersistentReference` doesn't get handled correctly
     in the resolveQueueConflict function due to lack of the `__hash__` method.
@@ -61,93 +61,21 @@ class PersistentReferenceSet(object):
     `PersistentReference`.
 
     """
-    def __init__(self, seq):
-        assert isinstance(seq, tuple)
-        self._data = self._dedup(seq)
+    def __init__(self, pr):
+        assert isinstance(pr, PersistentReference)
+        self.pr = pr
 
-    def _dedup(self, seq):
-        seq = list(seq)
-        cnt = 0
-        while len(seq) > cnt:
-            remove = []
-            for idx, item in enumerate(seq[cnt + 1:]):
-                try:
-                    if item == seq[cnt]:
-                        remove.append(cnt + idx + 1)
-                except ValueError:
-                    pass
-            for idx in reversed(remove):
-                seq.pop(idx)
-            cnt += 1
-        return tuple(seq)
+    def __hash__(self):
+        return 1
 
-    def __cmp__(self, other):
-        if len(self._data) == len(other._data):
-            other_data = list(other._data[:])
-            for item in self._data:
-                for index, other_item in enumerate(other_data):
-                    try:
-                        if item == other_item:
-                            other_data.pop(index)
-                    except ValueError:
-                        pass
-                    else:
-                        break
-                else:
-                    break
-            else:
-                assert len(other_data) == 0
-                return 0
-        raise ValueError(
-            "can't reliably compare against different "
-            "PersistentReferences")
-
-    def __sub__(self, other):
-        self_data = list(self._data[:])
-        for other_item in other._data:
-            for index, item in enumerate(self_data):
-                try:
-                    if other_item == item:
-                        self_data.pop(index)
-                except ValueError:
-                    pass
-                else:
-                    break
-        return PersistentReferenceSet(tuple(self_data))
-
-    def __and__(self, other):
-        self_data = list(self._data[:])
-        intersection = []
-        for other_item in other._data:
-            for index, item in enumerate(self_data):
-                try:
-                    if other_item == item:
-                        self_data.pop(index)
-                        intersection.append(item)
-                except ValueError:
-                    pass
-                else:
-                    break
-        return PersistentReferenceSet(tuple(intersection))
-
-    def __iter__(self):
-        for item in self._data:
-            yield item
-
-    def __len__(self):
-        return len(self._data)
+    def __eq__(self, other):
+        try:
+            return self.pr == other.pr
+        except ValueError:
+            return False
 
     def __repr__(self):
-        return "PRSet(%s)" % str(self._data)
-
-    def __contains__(self, item):
-        for data in self._data:
-            try:
-                if item == data:
-                    return True
-            except ValueError:
-                pass
-        return False
+        return str(self.pr)
 
 
 def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
@@ -161,22 +89,18 @@ def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
     # basically, we are ok with anything--willing to merge--
     # unless committedstate and newstate have one or more of the
     # same deletions or additions in comparison to the oldstate.
-    old = oldstate['_data']
-    committed = committedstate['_data']
-    new = newstate['_data']
 
-    # If items in the queue are persistent object, we can't use set().
-    # see 'queue.txt'
-    for item in (old + committed + new):
-        if not isinstance(item, PersistentReference):
-            Set = set
-            break
-    else:
-        Set = PersistentReferenceSet
+    # If items in the queue are persistent object, we need to wrap
+    # PersistentReference objects. See 'queue.txt'
+    wrap = lambda x: (
+        PersistentReferenceProxy(x) if isinstance(x, PersistentReference) else x)
+    old = map(wrap, oldstate['_data'])
+    committed = map(wrap, committedstate['_data'])
+    new = map(wrap, newstate['_data'])
 
-    old_set = Set(old)
-    committed_set = Set(committed)
-    new_set = Set(new)
+    old_set = set(old)
+    committed_set = set(committed)
+    new_set = set(new)
 
     if bucket and bool(old_set) and (bool(committed_set) ^ bool(new_set)):
         # This is a bucket, part of a CompositePersistentQueue.  The old set
@@ -201,13 +125,14 @@ def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
     # Now we do the merge.  We'll merge into the committed state and
     # return it.
     mod_committed = []
+    unwrap = lambda x: x.pr if isinstance(x, PersistentReferenceProxy) else x
     for v in committed:
         if v not in new_removed:
-            mod_committed.append(v)
+            mod_committed.append(unwrap(v))
     if new_added:
         ordered_new_added = new[-len(new_added):]
-        assert Set(ordered_new_added) == new_added
-        mod_committed.extend(ordered_new_added)
+        assert set(ordered_new_added) == new_added
+        mod_committed.extend(map(unwrap, ordered_new_added))
     committedstate['_data'] = tuple(mod_committed)
     return committedstate
 
