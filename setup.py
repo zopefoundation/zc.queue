@@ -16,7 +16,15 @@ setup(
     license="ZPL 2.1",
     author="Zope Project",
     author_email="zope-dev@zope.org",
-
+    # Get more strings from
+    # http://pypi.python.org/pypi?%3Aaction=list_classifiers
+    classifiers=[
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.5",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
+        ],
     namespace_packages=["zc"],
     packages=["zc", "zc.queue"],
     package_dir={"": "src"},
