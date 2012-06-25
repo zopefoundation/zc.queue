@@ -224,7 +224,7 @@ class CompositeQueue(Persistent):
 
     def __getitem__(self, index):
         if isinstance(index, slice):
-            start, stop, stride = slice.indices(len(self))
+            start, stop, stride = index.indices(len(self))
             res = []
             stride_ct = 1
             for ix, v in enumerate(self):
