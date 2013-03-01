@@ -23,7 +23,7 @@ tests_require = ["zope.testing"]
 
 setup(
     name="zc.queue",
-    version="1.4dev",
+    version='2.0.0a1',
     author="Zope Project",
     author_email="zope-dev@zope.org",
     description=read('README.txt'),
