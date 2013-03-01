@@ -1,3 +1,18 @@
+##############################################################################
+#
+# Copyright (c) 2011 Zope Foundation and Contributors.
+# All Rights Reserved.
+#
+# This software is subject to the provisions of the Zope Public License,
+# Version 2.1 (ZPL).  A copy of the ZPL should accompany this distribution.
+# THIS SOFTWARE IS PROVIDED "AS IS" AND ANY AND ALL EXPRESS OR IMPLIED
+# WARRANTIES ARE DISCLAIMED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF TITLE, MERCHANTABILITY, AGAINST INFRINGEMENT, AND FITNESS
+# FOR A PARTICULAR PURPOSE.
+#
+##############################################################################
+"""Queue Implementations
+"""
 from persistent import Persistent
 from ZODB.ConflictResolution import PersistentReference
 from ZODB.POSException import ConflictError
@@ -5,10 +20,8 @@ from zope import interface
 
 from zc.queue import interfaces
 
-
+@interface.implementer(interfaces.IQueue)
 class Queue(Persistent):
-
-    interface.implements(interfaces.IQueue)
 
     def __init__(self):
         self._data = ()
@@ -94,9 +107,9 @@ def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
     # PersistentReference objects. See 'queue.txt'
     wrap = lambda x: (
         PersistentReferenceProxy(x) if isinstance(x, PersistentReference) else x)
-    old = map(wrap, oldstate['_data'])
-    committed = map(wrap, committedstate['_data'])
-    new = map(wrap, newstate['_data'])
+    old = list(map(wrap, oldstate['_data']))
+    committed = list(map(wrap, committedstate['_data']))
+    new = list(map(wrap, newstate['_data']))
 
     old_set = set(old)
     committed_set = set(committed)
@@ -132,11 +145,12 @@ def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
     if new_added:
         ordered_new_added = new[-len(new_added):]
         assert set(ordered_new_added) == new_added
-        mod_committed.extend(map(unwrap, ordered_new_added))
+        mod_committed.extend(list(map(unwrap, ordered_new_added)))
     committedstate['_data'] = tuple(mod_committed)
     return committedstate
 
 
+@interface.implementer(interfaces.IQueue)
 class CompositeQueue(Persistent):
     """Appropriate for queues that may become large.
 
@@ -167,8 +181,6 @@ class CompositeQueue(Persistent):
     # transaction.  This would work in some scenarios, but breaks down
     # when two transactions happen sequentially *while* a third
     # transaction happens concurrently to both.
-
-    interface.implements(interfaces.IQueue)
 
     def __init__(self, compositeSize=15, subfactory=BucketQueue):
         # the compositeSize value is a ballpark.  Because of the merging

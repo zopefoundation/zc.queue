@@ -89,14 +89,14 @@ Beyond these core queue operations, queues support len...
 
 ...iter (which does *not* empty the queue)...
 
-    >>> iter(q).next()
+    >>> next(iter(q))
     Traceback (most recent call last):
     ...
     StopIteration
     >>> q.put(Item(9))
     >>> q.put(Item(10))
     >>> q.put(Item(11))
-    >>> iter(q).next()
+    >>> next(iter(q))
     9
     >>> [i for i in q]
     [9, 10, 11]
@@ -249,7 +249,7 @@ If two users try to add the same item, then a conflict error is raised.
     >>> try:
     ...     transactionmanager_2.commit() # doctest: +ELLIPSIS
     ... except (ConflictError, InvalidObjectReference):
-    ...     print "Conflict Error"
+    ...     print("Conflict Error")
     Conflict Error
     >>> transactionmanager_2.abort()
     >>> connection_1.sync()
