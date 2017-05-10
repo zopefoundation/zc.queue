@@ -9,3 +9,5 @@ bin
 develop-eggs
 docs
 parts
+.coverage
+htmlcov/
