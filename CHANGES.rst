@@ -5,7 +5,12 @@ CHANGES
 2.0.0a2 (unreleased)
 ====================
 
-- Nothing changed yet.
+- Dropped support for Python 2.6 and 3.3.
+
+- Added support for Python 3.4, 3.5, 3.6 and PyPy.
+
+- Fix using complex slices (e.g., negative strides) in
+  ``CompositeQueue``. The cost is higher memory usage.
 
 
 2.0.0a1 (2013-03-01)

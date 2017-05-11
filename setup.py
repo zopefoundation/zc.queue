@@ -17,19 +17,23 @@ import os
 from setuptools import setup
 
 def read(*rnames):
-    return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
+    with open(os.path.join(os.path.dirname(__file__), *rnames)) as f:
+        return f.read()
 
-tests_require = ["zope.testing"]
+tests_require = [
+    "zope.testing",
+    "zope.testrunner",
+]
 
 setup(
     name="zc.queue",
     version='2.0.0a2.dev0',
     author="Zope Project",
     author_email="zope-dev@zope.org",
-    description=read('README.txt'),
+    description=read('README.rst'),
     long_description='\n\n'.join([
-        read('src', 'zc', 'queue', 'queue.txt'),
-        read('CHANGES.txt'),
+        read('src', 'zc', 'queue', 'queue.rst'),
+        read('CHANGES.rst'),
         ]),
     keywords='zope zope3',
     classifiers=[
@@ -38,16 +42,18 @@ setup(
         'License :: OSI Approved :: Zope Public License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: Implementation :: CPython',
+        'Programming Language :: Python :: Implementation :: PyPy',
         'Natural Language :: English',
         'Operating System :: OS Independent',
         'Framework :: Zope3'
         ],
-    url='http://pypi.python.org/pypi/zc.queue',
+    url='http://github.com/zopefoundation/zc.queue',
     license="ZPL 2.1",
     namespace_packages=['zc'],
     packages=['zc', 'zc.queue'],
@@ -63,6 +69,6 @@ setup(
     test_suite='zc.queue.tests.test_suite',
     extras_require=dict(
         test=tests_require,
-        ),
+    ),
     zip_safe=False
-    )
+)

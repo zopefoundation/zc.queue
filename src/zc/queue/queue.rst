@@ -450,14 +450,19 @@ objects that have same oid to simulate different transaction states.
 `set` doesn't handle persistent reference objects properly. All
 following set operations produce wrong results.
 
-Deduplication:
+Deduplication (notice that for items longer than length two we're only
+checking the length and contents, not the ordering of the
+representation, because that varies among different versions of Python):
 
     >>> set((pr1, pr_c1))
     set([SPR (1), SPR (1)])
     >>> set((pr2, pr_c2))
     set([SPR (2), SPR (2)])
-    >>> set((pr1, pr_c1, pr2))
-    set([SPR (1), SPR (1), SPR (2)])
+    >>> set4 = set((pr1, pr_c1, pr2))
+    >>> len(set4)
+    3
+    >>> pr1 in set4 and pr_c1 in set4 and pr2 in set4
+    True
     >>> set4 = set((pr1, pr2, pr3, pr_c1, pr_c2, pr_c3))
     >>> len(set4)
     6

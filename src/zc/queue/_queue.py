@@ -235,32 +235,23 @@ class CompositeQueue(Persistent):
                 yield i
 
     def __getitem__(self, index):
+        # not efficient, but quick and easy
         if isinstance(index, slice):
-            start, stop, stride = index.indices(len(self))
-            res = []
-            stride_ct = 1
-            for ix, v in enumerate(self):
-                if ix >= stop:
-                    break
-                if ix < start:
-                    continue
-                stride_ct -= 1
-                if stride_ct == 0:
-                    res.append(v)
-                    stride_ct = stride
-            return res
+            # We do this the easy way instead of attempting to handle
+            # negative strides ourself
+            return list(self)[index]
+
+        if index < 0:
+            len_self = len(self)
+            rindex = index + len_self
+            if rindex < 0:
+                raise IndexError(index)
         else:
-            if index < 0:  # not efficient, but quick and easy
-                len_self = len(self)
-                rindex = index + len_self
-                if rindex < 0:
-                    raise IndexError(index)
-            else:
-                rindex = index
-            for ix, v in enumerate(self):
-                if ix == rindex:
-                    return v
-            raise IndexError(index)
+            rindex = index
+        for ix, v in enumerate(self):
+            if ix == rindex:
+                return v
+        raise IndexError(index)
 
     def _p_resolveConflict(self, oldstate, committedstate, newstate):
         return resolveQueueConflict(oldstate, committedstate, newstate)

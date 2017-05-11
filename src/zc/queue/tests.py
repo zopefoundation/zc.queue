@@ -23,9 +23,9 @@ from zope.testing import renormalizing
 
 checker = renormalizing.RENormalizing([
     # Python 3 set representation changed.
-    (re.compile("set\(\[(.*?)\]\)"),
+    (re.compile(r"set\(\[(.*?)\]\)"),
      r"{\1}"),
-    (re.compile("set\(\)"),
+    (re.compile(r"set\(\)"),
      r"{}"),
     ])
 
@@ -49,8 +49,9 @@ class ConflictResolvingMappingStorage(
 
     def store(self, oid, serial, data, version, transaction):
         assert not version, "Versions are not supported"
-        if transaction is not self._transaction:
-            raise POSException.StorageTransactionError(self, transaction)
+        # Real storages would raise a StorageTransactionError for this
+        assert transaction is self._transaction
+
 
         old_tid = None
         tid_data = self._data.get(oid)
@@ -59,11 +60,9 @@ class ConflictResolvingMappingStorage(
             if serial != old_tid:
                 rdata = self.tryToResolveConflict(
                     oid, old_tid, serial, data)
-                if rdata is None:
-                    raise POSException.ConflictError(
-                        oid=oid, serials=(old_tid, serial), data=data)
-                else:
-                    data = rdata
+                # Real storages would raise a ConflictError for this
+                assert rdata is not None
+                data = rdata
         self._tdata[oid] = data
         return self._tid
 
@@ -147,20 +146,14 @@ class StubPersistentReference(ConflictResolution.PersistentReference):
         # as the OID actually equals correct behavior!
         return id(self)#self.oid
 
-    def __cmp__(self, other):
-        if self.oid == other.oid:
-            return 0
-        else:
-            raise ValueError("Can't compare")
-
     def __eq__(self, other):
         if self.oid == other.oid:
             return True
-        else:
-            raise ValueError("Can't compare")
+        # Raising ValueError is actually expected
+        raise ValueError("Can't compare")
 
     def __ne__(self, other):
-        raise ValueError("Can't compare")
+        raise NotImplementedError("Not called")
 
     __lt__ = __gt__ = __le__ = __ge__ = __ne__
 
@@ -179,35 +172,86 @@ class PersistentObject(Persistent):
         return "%s" % self.value
 
 
+class TestQueue(unittest.TestCase):
+
+    def _make_one(self):
+        return zc.queue.Queue()
+
+    def test_negative_pull_empty(self):
+        self.assertRaises(IndexError,
+                          self._make_one().pull, -1)
+
+    def test_negative_getitem_empty(self):
+        self.assertRaises(IndexError,
+                          self._make_one().__getitem__, -1)
+
+
+    def test_get_slice(self):
+        q = self._make_one()
+        q.put(1)
+        q.put(2)
+        q.put(3)
+        q.put(4)
+
+        self.assertEqual(list(q[:]), [1, 2, 3, 4])
+        self.assertEqual(list(q[:1]), [1])
+        self.assertEqual(list(q[::-1]), [4, 3, 2, 1])
+
+    def test_resolve_conflict_different_key(self):
+        q = self._make_one()
+        committedstate = {'k': 1}
+        newstate = {'j': 1}
+        oldstate = {}
+        self.assertRaises(POSException.ConflictError,
+                          q._p_resolveConflict,
+                          oldstate, committedstate, newstate)
+
+    def test_resolve_conflict_different_data(self):
+        q = self._make_one()
+        newstate = {'j': 1}
+        committedstate = {'j': 2}
+        oldstate = {}
+        self.assertRaises(POSException.ConflictError,
+                          q._p_resolveConflict,
+                          oldstate, committedstate, newstate)
+
+
+class TestCompositeQueue(TestQueue):
+
+    def _make_one(self):
+        return zc.queue.CompositeQueue()
+
+
 def test_suite():
     flags = doctest.IGNORE_EXCEPTION_DETAIL
     return unittest.TestSuite((
         doctest.DocFileSuite(
-            'queue.txt',
+            'queue.rst',
             optionflags=flags, checker=checker,
             globs={
                 'Queue': zc.queue.Queue,
                 'Item': PersistentObject}),
         doctest.DocFileSuite(
-            'queue.txt',
+            'queue.rst',
             optionflags=flags, checker=checker,
             globs={
                 'Queue': lambda: zc.queue.CompositeQueue(2),
                 'Item': PersistentObject}),
         doctest.DocFileSuite(
-            'queue.txt',
+            'queue.rst',
             optionflags=flags, checker=checker,
             globs={
                 'Queue': zc.queue.Queue,
                 'Item': lambda x: x}),
         doctest.DocFileSuite(
-            'queue.txt',
+            'queue.rst',
             optionflags=flags, checker=checker,
             globs={
                 'Queue': lambda: zc.queue.CompositeQueue(2),
                 'Item': lambda x: x}),
-        doctest.DocTestSuite()
-        ))
+        doctest.DocTestSuite(),
+        unittest.defaultTestLoader.loadTestsFromName(__name__),
+    ))
 
 if __name__ == '__main__':
     unittest.main(defaultTest='test_suite')
