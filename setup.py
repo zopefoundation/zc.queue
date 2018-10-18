@@ -51,7 +51,7 @@ setup(
         'Programming Language :: Python :: Implementation :: PyPy',
         'Natural Language :: English',
         'Operating System :: OS Independent',
-        'Framework :: Zope3'
+        'Framework :: Zope :: 3'
         ],
     url='http://github.com/zopefoundation/zc.queue',
     license="ZPL 2.1",
