@@ -15,6 +15,7 @@
 """
 from persistent.interfaces import IPersistent
 
+
 class IQueue(IPersistent):
     def put(item):
         """Put an item on the end of the queue.

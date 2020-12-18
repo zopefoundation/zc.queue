@@ -20,6 +20,7 @@ from zope import interface
 
 from zc.queue import interfaces
 
+
 @interface.implementer(interfaces.IQueue)
 class Queue(Persistent):
 
@@ -62,6 +63,7 @@ class BucketQueue(Queue):
         return resolveQueueConflict(
             oldstate, committedstate, newstate, True)
 
+
 PersistentQueue = BucketQueue  # for legacy instances, be conservative
 
 
@@ -74,6 +76,7 @@ class PersistentReferenceProxy(object):
     `PersistentReference`.
 
     """
+
     def __init__(self, pr):
         assert isinstance(pr, PersistentReference)
         self.pr = pr
@@ -105,8 +108,11 @@ def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
 
     # If items in the queue are persistent object, we need to wrap
     # PersistentReference objects. See 'queue.txt'
-    wrap = lambda x: (
-        PersistentReferenceProxy(x) if isinstance(x, PersistentReference) else x)
+    def wrap(x):
+        return (
+            PersistentReferenceProxy(x)
+            if isinstance(x, PersistentReference)
+            else x)
     old = list(map(wrap, oldstate['_data']))
     committed = list(map(wrap, committedstate['_data']))
     new = list(map(wrap, newstate['_data']))
@@ -138,7 +144,9 @@ def resolveQueueConflict(oldstate, committedstate, newstate, bucket=False):
     # Now we do the merge.  We'll merge into the committed state and
     # return it.
     mod_committed = []
-    unwrap = lambda x: x.pr if isinstance(x, PersistentReferenceProxy) else x
+
+    def unwrap(x):
+        return x.pr if isinstance(x, PersistentReferenceProxy) else x
     for v in committed:
         if v not in new_removed:
             mod_committed.append(unwrap(v))
@@ -255,5 +263,6 @@ class CompositeQueue(Persistent):
 
     def _p_resolveConflict(self, oldstate, committedstate, newstate):
         return resolveQueueConflict(oldstate, committedstate, newstate)
+
 
 CompositePersistentQueue = CompositeQueue  # legacy

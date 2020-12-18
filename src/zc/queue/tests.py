@@ -27,7 +27,7 @@ checker = renormalizing.RENormalizing([
      r"{\1}"),
     (re.compile(r"set\(\)"),
      r"{}"),
-    ])
+])
 
 # TODO: this approach is useful, but fragile.  It also puts a dependency in
 # this package on the ZODB, when otherwise it would only depend on persistent.
@@ -44,14 +44,13 @@ checker = renormalizing.RENormalizing([
 
 
 class ConflictResolvingMappingStorage(
-    MappingStorage.MappingStorage,
-    ConflictResolution.ConflictResolvingStorage):
+        MappingStorage.MappingStorage,
+        ConflictResolution.ConflictResolvingStorage):
 
     def store(self, oid, serial, data, version, transaction):
         assert not version, "Versions are not supported"
         # Real storages would raise a StorageTransactionError for this
         assert transaction is self._transaction
-
 
         old_tid = None
         tid_data = self._data.get(oid)
@@ -144,7 +143,7 @@ class StubPersistentReference(ConflictResolution.PersistentReference):
     def __hash__(self):
         # Use id() here to make tests pass with bad results. Defining the hash
         # as the OID actually equals correct behavior!
-        return id(self)#self.oid
+        return id(self)  # self.oid
 
     def __eq__(self, other):
         if self.oid == other.oid:
@@ -184,7 +183,6 @@ class TestQueue(unittest.TestCase):
     def test_negative_getitem_empty(self):
         self.assertRaises(IndexError,
                           self._make_one().__getitem__, -1)
-
 
     def test_get_slice(self):
         q = self._make_one()
@@ -252,6 +250,3 @@ def test_suite():
         doctest.DocTestSuite(),
         unittest.defaultTestLoader.loadTestsFromName(__name__),
     ))
-
-if __name__ == '__main__':
-    unittest.main(defaultTest='test_suite')
