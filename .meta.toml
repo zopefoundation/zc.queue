@@ -17,6 +17,7 @@ fail-under = 99
 [flake8]
 additional-config = [
     "# F401 imported but unused",
+    "# F403 ‘from module import *’ used",
     "per-file-ignores =",
     "    src/zc/queue/__init__.py: F401 F403",
     ]
