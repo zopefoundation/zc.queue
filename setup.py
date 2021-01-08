@@ -57,7 +57,7 @@ setup(
         'Operating System :: OS Independent',
         'Framework :: Zope :: 3'
     ],
-    url='http://github.com/zopefoundation/zc.queue',
+    url='https://github.com/zopefoundation/zc.queue',
     license="ZPL 2.1",
     namespace_packages=['zc'],
     packages=['zc', 'zc.queue'],
