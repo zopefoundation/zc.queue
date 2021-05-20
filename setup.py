@@ -32,7 +32,7 @@ setup(
     version='2.1.0.dev0',
     author="Zope Project",
     author_email="zope-dev@zope.org",
-    description=read('README.rst'),
+    description=read('README.rst').splitlines()[0],
     long_description='\n\n'.join([
         read('src', 'zc', 'queue', 'queue.rst'),
         read('CHANGES.rst'),
