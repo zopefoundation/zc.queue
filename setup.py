@@ -29,7 +29,7 @@ tests_require = [
 
 setup(
     name="zc.queue",
-    version='2.1.0.dev0',
+    version='3.0.dev0',
     author="Zope Project",
     author_email="zope-dev@zope.org",
     description=read('README.rst').splitlines()[0],
