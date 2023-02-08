@@ -16,10 +16,15 @@
 import doctest
 import re
 import unittest
-import zc.queue
+
 from persistent import Persistent
-from ZODB import ConflictResolution, MappingStorage, POSException
+from ZODB import ConflictResolution
+from ZODB import MappingStorage
+from ZODB import POSException
 from zope.testing import renormalizing
+
+import zc.queue
+
 
 checker = renormalizing.RENormalizing([
     # Python 3 set representation changed.
