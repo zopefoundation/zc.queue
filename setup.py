@@ -32,7 +32,7 @@ setup(
     name="zc.queue",
     version='3.0.dev0',
     author="Zope Project",
-    author_email="zope-dev@zope.org",
+    author_email="zope-dev@zope.dev",
     description=read('README.rst').splitlines()[0],
     long_description='\n\n'.join([
         read('src', 'zc', 'queue', 'queue.rst'),
@@ -62,6 +62,7 @@ setup(
     packages=['zc', 'zc.queue'],
     package_dir={'': 'src'},
     include_package_data=True,
+    python_requires='>=3.7',
     install_requires=[
         'setuptools',
         'ZODB',

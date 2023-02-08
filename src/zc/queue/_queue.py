@@ -67,7 +67,7 @@ class BucketQueue(Queue):
 PersistentQueue = BucketQueue  # for legacy instances, be conservative
 
 
-class PersistentReferenceProxy(object):
+class PersistentReferenceProxy:
     """PersistentReferenceProxy
 
     `ZODB.ConflictResolution.PersistentReference` doesn't get handled correctly
@@ -239,8 +239,7 @@ class CompositeQueue(Persistent):
 
     def __iter__(self):
         for q in self._data:
-            for i in q:
-                yield i
+            yield from q
 
     def __getitem__(self, index):
         # not efficient, but quick and easy

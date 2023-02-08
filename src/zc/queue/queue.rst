@@ -433,17 +433,17 @@ objects that have same oid to simulate different transaction states.
 
     >>> set1 = set((pr1, pr2))
     >>> set1
-    set([SPR (1), SPR (2)])
+    {SPR (1), SPR (2)}
     >>> len(set1)
     2
     >>> set2 = set((pr_c1, pr_c3))
     >>> set2
-    set([SPR (1), SPR (3)])
+    {SPR (1), SPR (3)}
     >>> len(set2)
     2
     >>> set_c1 = set((pr_c1, pr_c2))
     >>> set_c1
-    set([SPR (1), SPR (2)])
+    {SPR (1), SPR (2)}
     >>> len(set_c1)
     2
 
@@ -455,9 +455,9 @@ checking the length and contents, not the ordering of the
 representation, because that varies among different versions of Python):
 
     >>> set((pr1, pr_c1))
-    set([SPR (1), SPR (1)])
+    {SPR (1), SPR (1)}
     >>> set((pr2, pr_c2))
-    set([SPR (2), SPR (2)])
+    {SPR (2), SPR (2)}
     >>> set4 = set((pr1, pr_c1, pr2))
     >>> len(set4)
     3
@@ -473,7 +473,7 @@ Minus operation:
     >>> len(set3)
     2
     >>> set3
-    set([SPR (1), SPR (2)])
+    {SPR (1), SPR (2)}
 
 Contains:
 
@@ -483,7 +483,7 @@ Contains:
 Intersection:
 
     >>> set1 & set2
-    set([])
+    set()
 
 Compare:
 
@@ -515,17 +515,17 @@ to work with sets.
 
     >>> set1 = set((prp1, prp2))
     >>> set1
-    set([SPR (1), SPR (2)])
+    {SPR (1), SPR (2)}
     >>> len(set1)
     2
     >>> set2 = set((prp_c1, prp_c3))
     >>> set2
-    set([SPR (1), SPR (3)])
+    {SPR (1), SPR (3)}
     >>> len(set2)
     2
     >>> set_c1 = set((prp_c1, prp_c2))
     >>> set_c1
-    set([SPR (1), SPR (2)])
+    {SPR (1), SPR (2)}
     >>> len(set_c1)
     2
 
@@ -538,11 +538,11 @@ Deduplication:
     >>> len(set4)
     3
     >>> set((prp1, prp_c1))
-    set([SPR (1)])
+    {SPR (1)}
     >>> set((prp2, prp_c2))
-    set([SPR (2)])
+    {SPR (2)}
     >>> set((prp1, prp_c1, prp2))
-    set([SPR (1), SPR (2)])
+    {SPR (1), SPR (2)}
 
 Minus operation:
 
@@ -550,13 +550,13 @@ Minus operation:
     >>> len(set3)
     1
     >>> set3
-    set([SPR (2)])
+    {SPR (2)}
     >>> set1 - set1
-    set([])
+    set()
     >>> set2 - set3
-    set([SPR (1), SPR (3)])
+    {SPR (1), SPR (3)}
     >>> set3 - set2
-    set([SPR (2)])
+    {SPR (2)}
 
 Contains:
 
@@ -572,11 +572,11 @@ Contains:
 Intersection:
 
     >>> set1 & set2
-    set([SPR (1)])
+    {SPR (1)}
     >>> set1 & set_c1
-    set([SPR (1), SPR (2)])
+    {SPR (1), SPR (2)}
     >>> set2 & set3
-    set([])
+    set()
 
 Compare:
 
