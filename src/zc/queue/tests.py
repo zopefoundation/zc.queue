@@ -14,20 +14,15 @@
 """Test Setup
 """
 import doctest
-import re
 import unittest
-import zc.queue
-from persistent import Persistent
-from ZODB import ConflictResolution, MappingStorage, POSException
-from zope.testing import renormalizing
 
-checker = renormalizing.RENormalizing([
-    # Python 3 set representation changed.
-    (re.compile(r"set\(\[(.*?)\]\)"),
-     r"{\1}"),
-    (re.compile(r"set\(\)"),
-     r"{}"),
-])
+from persistent import Persistent
+from ZODB import ConflictResolution
+from ZODB import MappingStorage
+from ZODB import POSException
+
+import zc.queue
+
 
 # TODO: this approach is useful, but fragile.  It also puts a dependency in
 # this package on the ZODB, when otherwise it would only depend on persistent.
@@ -225,25 +220,25 @@ def test_suite():
     return unittest.TestSuite((
         doctest.DocFileSuite(
             'queue.rst',
-            optionflags=flags, checker=checker,
+            optionflags=flags,
             globs={
                 'Queue': zc.queue.Queue,
                 'Item': PersistentObject}),
         doctest.DocFileSuite(
             'queue.rst',
-            optionflags=flags, checker=checker,
+            optionflags=flags,
             globs={
                 'Queue': lambda: zc.queue.CompositeQueue(2),
                 'Item': PersistentObject}),
         doctest.DocFileSuite(
             'queue.rst',
-            optionflags=flags, checker=checker,
+            optionflags=flags,
             globs={
                 'Queue': zc.queue.Queue,
                 'Item': lambda x: x}),
         doctest.DocFileSuite(
             'queue.rst',
-            optionflags=flags, checker=checker,
+            optionflags=flags,
             globs={
                 'Queue': lambda: zc.queue.CompositeQueue(2),
                 'Item': lambda x: x}),

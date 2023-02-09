@@ -14,6 +14,7 @@
 """Setup
 """
 import os
+
 from setuptools import setup
 
 
@@ -29,9 +30,9 @@ tests_require = [
 
 setup(
     name="zc.queue",
-    version='2.1.0.dev0',
+    version='3.0.dev0',
     author="Zope Project",
-    author_email="zope-dev@zope.org",
+    author_email="zope-dev@zope.dev",
     description=read('README.rst').splitlines()[0],
     long_description='\n\n'.join([
         read('src', 'zc', 'queue', 'queue.rst'),
@@ -43,19 +44,17 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Zope Public License',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Natural Language :: English',
         'Operating System :: OS Independent',
-        'Framework :: Zope :: 3'
+        'Framework :: Zope :: 3',
     ],
     url='https://github.com/zopefoundation/zc.queue',
     license="ZPL 2.1",
@@ -63,6 +62,7 @@ setup(
     packages=['zc', 'zc.queue'],
     package_dir={'': 'src'},
     include_package_data=True,
+    python_requires='>=3.7',
     install_requires=[
         'setuptools',
         'ZODB',
